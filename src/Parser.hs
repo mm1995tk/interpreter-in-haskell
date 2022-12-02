@@ -2,9 +2,8 @@ module Parser (Parser, sc, parseNumber, parseNull, parseBool, parseSymbol, parse
 
 import qualified AST
 import Control.Monad (void)
-
 -- import Data.Functor (($>))
-import Data.Text (Text, pack)
+import Data.Text (Text, pack, unpack)
 import Data.Void (Void)
 import Text.Megaparsec (Parsec, choice, some, (<?>), (<|>))
 import Text.Megaparsec.Char (alphaNumChar, char, space1, string)
@@ -37,7 +36,10 @@ parseSemicolon = void $ char ';' <* sc
 
 parseLetStmt :: Parser AST.Statement
 parseLetStmt = do
-  AST.SymbolExpr symbol <- letKeyword *> (parseSymbol <?> "変数名") <* eqKeyword
+  expr <- letKeyword *> (parseSymbol <?> "変数名") <* eqKeyword
+  symbol <- case expr of
+    (AST.SymbolExpr symbol) -> pure symbol
+    _ -> throwErr Panic
   AST.Let symbol <$> parseExpr <* parseSemicolon
  where
   letKeyword = void $ string "let" <* sc
@@ -50,3 +52,16 @@ parseExpr =
     , parseBool
     , parseSymbol
     ]
+
+data ParserErr
+  = Panic
+  | UnexpectedToken Text Text
+
+instance Show ParserErr where
+  show = \case
+    Panic -> "panic!"
+    UnexpectedToken expected obtained ->
+      "expected: " ++ unpack expected ++ "obtained: " ++ unpack obtained
+
+throwErr :: ParserErr -> Parser a
+throwErr = fail . show
