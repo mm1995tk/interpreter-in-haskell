@@ -26,7 +26,6 @@ source-repository head
 library
   exposed-modules:
       AST
-      Lib
       Parser
   other-modules:
       Paths_interpreter_in_haskell
@@ -85,7 +84,7 @@ test-suite interpreter-in-haskell-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
-      LibSpec
+      ParserSpec
       Paths_interpreter_in_haskell
   hs-source-dirs:
       test

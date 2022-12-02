@@ -1,10 +1,10 @@
-module Parser (Parser, sc, parseNumber, parseNull,parseBool) where
+module Parser (Parser, sc, parseNumber, parseNull, parseBool, parseSymbol) where
 
-import AST (Expr (..))
-import Data.Text (Text)
+import qualified AST
+import Data.Text (Text, pack)
 import Data.Void (Void)
-import Text.Megaparsec hiding (oneOf)
-import Text.Megaparsec.Char (space1, string)
+import Text.Megaparsec (Parsec, some, (<|>))
+import Text.Megaparsec.Char (alphaNumChar, space1, string)
 import qualified Text.Megaparsec.Char.Lexer as L
 
 type Parser = Parsec Void Text
@@ -17,11 +17,14 @@ sc =
     (L.skipLineComment "//")
     (L.skipBlockComment "/*" "*/")
 
-parseNumber :: Parser Expr
-parseNumber = Number <$> L.decimal
+parseNumber :: Parser AST.Expr
+parseNumber = AST.Number <$> L.decimal
 
-parseBool :: Parser Expr
-parseBool = Bool True <$ string "true" <|> Bool False <$ string "false"
+parseBool :: Parser AST.Expr
+parseBool = AST.Bool True <$ string "true" <|> AST.Bool False <$ string "false"
 
-parseNull :: Parser Expr
-parseNull = Null <$ string "null"
+parseNull :: Parser AST.Expr
+parseNull = AST.Null <$ string "null"
+
+parseSymbol :: Parser AST.Expr
+parseSymbol = AST.SymbolExpr . AST.Symbol . pack <$> (some alphaNumChar :: Parser String)

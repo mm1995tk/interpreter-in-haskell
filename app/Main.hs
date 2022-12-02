@@ -1,8 +1,8 @@
 module Main (main) where
 
-import Lib (plusOne)
+
 import Parser (parseNumber, parseNull, parseBool)
-import Text.Megaparsec (parse, parseTest)
+import Text.Megaparsec (parseTest)
 import Data.Text (pack)
 
 main :: IO ()
@@ -12,4 +12,3 @@ main = do
   parseTest parseNull (pack "null")
   parseTest parseBool (pack "true")
   parseTest parseBool (pack "false")
-  print  0

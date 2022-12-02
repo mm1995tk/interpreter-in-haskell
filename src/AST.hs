@@ -10,14 +10,15 @@ module AST (
   PrefixOp (..),
 ) where
 
-import Data.Text (Text)
+import Data.Text (Text, unpack)
 
-type Program = [Statement]
+type Program = [Statement] 
 
 data Statement where
   Let :: {symbol :: Symbol, expr :: Expr} -> Statement
   Return :: {returnedExpr :: Expr} -> Statement
   ExprStmt :: {innerExpr :: Expr, semicolon :: Bool} -> Statement
+  deriving (Eq)
 
 data Expr where
   Null :: Expr
@@ -29,18 +30,19 @@ data Expr where
   If :: {cond :: Expr, consequence :: Program, alter :: Maybe Program} -> Expr
   Fn :: {params :: [Symbol], body :: Program} -> Expr
   Call :: {callExpr :: Expr, args :: [Expr]} -> Expr
+  deriving (Eq)
 
 instance Show Expr where
   show = \case
     Null -> "null"
     Number n -> show n
     Bool b -> if b then "true" else "false"
-    SymbolExpr (Symbol t) -> show t
+    SymbolExpr (Symbol t) -> unpack t
     Prefix{..} -> show prefixOp ++ show prefixBody
     Infix{..} -> show leftExp ++ show infixOp ++ show rightExp
     _ -> undefined
 
-data PrefixOp = MinusPrefix | Not
+data PrefixOp = MinusPrefix | Not deriving (Eq)
 instance Show PrefixOp where
   show = \case
     MinusPrefix -> "-"
@@ -55,6 +57,7 @@ data InfixOp
   | Gt
   | Eq
   | NotEq
+  deriving (Eq)
 
 instance Show InfixOp where
   show = \case
@@ -67,4 +70,4 @@ instance Show InfixOp where
     Eq -> "=="
     NotEq -> "!="
 
-newtype Symbol = Symbol Text
+newtype Symbol = Symbol Text deriving (Eq)
