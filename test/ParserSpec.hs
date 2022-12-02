@@ -2,9 +2,10 @@ module ParserSpec (spec_hspec) where
 
 import qualified AST
 import Data.Text (pack)
-import Parser (parseBool, parseNull, parseNumber, parseSymbol)
+import Parser (parseBool, parseLetStmt, parseNull, parseNumber, parseSymbol)
 import Test.Hspec (Spec, describe, it, shouldBe, shouldReturn)
 import Text.Megaparsec
+import Text.Megaparsec (parseTest)
 
 spec_hspec :: Spec
 spec_hspec = do
@@ -32,7 +33,6 @@ spec_hspec = do
       )
         `shouldBe` "null"
 
-
   describe "symbolのパース" $
     it "is symbol" $
       ( case parse parseSymbol "" (pack "abc") of
@@ -40,3 +40,8 @@ spec_hspec = do
           Left _ -> show $ AST.Number 0
       )
         `shouldBe` "abc"
+
+  -- describe "let文のパース（数値のみ受理）" $
+  --   it "is let stmt" $
+  --     parseTest parseLetStmt (pack "let c = 3;")
+  --       `shouldReturn` ()

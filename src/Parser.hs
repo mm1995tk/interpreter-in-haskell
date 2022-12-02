@@ -1,10 +1,13 @@
-module Parser (Parser, sc, parseNumber, parseNull, parseBool, parseSymbol) where
+module Parser (Parser, sc, parseNumber, parseNull, parseBool, parseSymbol, parseLetStmt) where
 
 import qualified AST
+import Control.Monad (void)
+
+-- import Data.Functor (($>))
 import Data.Text (Text, pack)
 import Data.Void (Void)
-import Text.Megaparsec (Parsec, some, (<|>))
-import Text.Megaparsec.Char (alphaNumChar, space1, string)
+import Text.Megaparsec (Parsec, choice, some, (<?>), (<|>))
+import Text.Megaparsec.Char (alphaNumChar, char, space1, string)
 import qualified Text.Megaparsec.Char.Lexer as L
 
 type Parser = Parsec Void Text
@@ -24,7 +27,26 @@ parseBool :: Parser AST.Expr
 parseBool = AST.Bool True <$ string "true" <|> AST.Bool False <$ string "false"
 
 parseNull :: Parser AST.Expr
-parseNull = AST.Null <$ string "null"
+parseNull = AST.Null <$ string "null" <* sc
 
 parseSymbol :: Parser AST.Expr
-parseSymbol = AST.SymbolExpr . AST.Symbol . pack <$> (some alphaNumChar :: Parser String)
+parseSymbol = AST.SymbolExpr . AST.Symbol . pack <$> (some alphaNumChar :: Parser String) <* sc
+
+parseSemicolon :: Parser ()
+parseSemicolon = void $ char ';' <* sc
+
+parseLetStmt :: Parser AST.Statement
+parseLetStmt = do
+  AST.SymbolExpr symbol <- letKeyword *> (parseSymbol <?> "変数名") <* eqKeyword
+  AST.Let symbol <$> parseExpr <* parseSemicolon
+ where
+  letKeyword = void $ string "let" <* sc
+  eqKeyword = void $ char '=' <* sc
+
+parseExpr :: Parser AST.Expr
+parseExpr =
+  choice
+    [ parseNumber
+    , parseBool
+    , parseSymbol
+    ]

@@ -12,13 +12,18 @@ module AST (
 
 import Data.Text (Text, unpack)
 
-type Program = [Statement] 
+type Program = [Statement]
 
 data Statement where
   Let :: {symbol :: Symbol, expr :: Expr} -> Statement
   Return :: {returnedExpr :: Expr} -> Statement
   ExprStmt :: {innerExpr :: Expr, semicolon :: Bool} -> Statement
-  deriving (Eq)
+  deriving (Eq, Show)
+
+-- instance Show Statement where
+--   show = \case
+--     Let{..} -> "let " ++ show symbol ++ "="
+--     _ -> undefined
 
 data Expr where
   Null :: Expr
@@ -71,3 +76,5 @@ instance Show InfixOp where
     NotEq -> "!="
 
 newtype Symbol = Symbol Text deriving (Eq)
+instance Show Symbol where
+  show (Symbol t) = unpack t
