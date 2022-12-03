@@ -1,67 +1,116 @@
-module Parser (Parser, sc, parseNumber, parseNull, parseBool, parseSymbol, parseLetStmt) where
+module Parser (Parser, parseExpr) where
 
 import qualified AST
 import Control.Monad (void)
--- import Data.Functor (($>))
+import Data.Functor ()
 import Data.Text (Text, pack, unpack)
 import Data.Void (Void)
-import Text.Megaparsec (Parsec, choice, some, (<?>), (<|>))
-import Text.Megaparsec.Char (alphaNumChar, char, space1, string)
-import qualified Text.Megaparsec.Char.Lexer as L
+import Text.Megaparsec (Parsec, try, (<|>))
+import qualified Text.Megaparsec as M
+import qualified Text.Megaparsec.Char as Mc
+import qualified Text.Megaparsec.Char.Lexer as Mcl
 
 type Parser = Parsec Void Text
 
--- | space consumer
+-- | スペースとコメントをスキップ
 sc :: Parser ()
 sc =
-  L.space
-    space1
-    (L.skipLineComment "//")
-    (L.skipBlockComment "/*" "*/")
+  Mcl.space
+    Mc.space1
+    (Mcl.skipLineComment "//")
+    (Mcl.skipBlockComment "/*" "*/")
 
-parseNumber :: Parser AST.Expr
-parseNumber = AST.Number <$> L.decimal
+-- | 'sc'を末尾に適用
+lexeme :: Parser a -> Parser a
+lexeme = Mcl.lexeme sc
 
-parseBool :: Parser AST.Expr
-parseBool = AST.Bool True <$ string "true" <|> AST.Bool False <$ string "false"
+-- |文字
+char :: Char -> Parser ()
+char = void . lexeme . Mc.char
 
-parseNull :: Parser AST.Expr
-parseNull = AST.Null <$ string "null" <* sc
+-- |予約語
+keyword :: Text -> Parser ()
+keyword t = void . lexeme . try $ Mc.string t <* M.notFollowedBy Mc.alphaNumChar
 
-parseSymbol :: Parser AST.Expr
-parseSymbol = AST.SymbolExpr . AST.Symbol . pack <$> (some alphaNumChar :: Parser String) <* sc
+betweenParen :: Parser a -> Parser a
+betweenParen = lexeme . M.between "(" ")"
 
-parseSemicolon :: Parser ()
-parseSemicolon = void $ char ';' <* sc
+betweenBrace :: Parser a -> Parser a
+betweenBrace = lexeme . M.between "{" "}"
 
-parseLetStmt :: Parser AST.Statement
-parseLetStmt = do
-  expr <- letKeyword *> (parseSymbol <?> "変数名") <* eqKeyword
-  symbol <- case expr of
-    (AST.SymbolExpr symbol) -> pure symbol
-    _ -> throwErr Panic
-  AST.Let symbol <$> parseExpr <* parseSemicolon
+semicolon :: Parser ()
+semicolon = char ';'
+
+parseLiteral :: Parser AST.Literal
+parseLiteral = M.choice [parseNumber, parseBool, parseNull]
+
+parseNumber :: Parser AST.Literal
+parseNumber = AST.NumLiteral <$> lexeme Mcl.decimal
+
+parseBool :: Parser AST.Literal
+parseBool =
+  pt <|> pf
  where
-  letKeyword = void $ string "let" <* sc
-  eqKeyword = void $ char '=' <* sc
+  pt = AST.BoolLiteral True <$ keyword "true"
+  pf = AST.BoolLiteral False <$ keyword "false"
+
+parseNull :: Parser AST.Literal
+parseNull = AST.Null <$ keyword "null"
+
+parseIdent :: Parser AST.Identifier
+parseIdent = AST.Identifier . pack <$> lexeme (M.some Mc.alphaNumChar :: Parser String)
 
 parseExpr :: Parser AST.Expr
 parseExpr =
-  choice
-    [ parseNumber
-    , parseBool
-    , parseSymbol
+  M.choice
+    [ AST.mapToExpr parseLiteral
+    , parseIfExpr
+    , AST.mapToExpr parseIdent
     ]
 
-data ParserErr
-  = Panic
-  | UnexpectedToken Text Text
+parseIfExpr :: Parser AST.Expr
+parseIfExpr = do
+  keyword "if"
+  cond <- betweenParen parseExpr
+  consequence <- betweenBrace $ pure [] :: Parser AST.Program
+  alter <- M.optional $ do
+    keyword "else"
+    betweenBrace $ pure [] :: Parser AST.Program
+  return AST.IfExpr{..}
 
-instance Show ParserErr where
-  show = \case
-    Panic -> "panic!"
-    UnexpectedToken expected obtained ->
-      "expected: " ++ unpack expected ++ "obtained: " ++ unpack obtained
+-- parseSymbol :: Parser AST.Expr
+-- parseSymbol = AST.SymbolExpr . AST.Symbol . pack <$> lexeme (some alphaNumChar :: Parser String)
 
-throwErr :: ParserErr -> Parser a
-throwErr = fail . show
+-- parseLetStmt :: Parser AST.Statement
+-- parseLetStmt = do
+--   expr <- letKeyword *> (parseExpr <?> "変数名") <* eqKeyword
+--   symbol <- case expr of
+--     (AST.SymbolExpr symbol) -> pure symbol
+--     _ -> throwErr Panic
+--   AST.Let symbol <$> parseExpr <* parseSemicolon
+--  where
+--   letKeyword = void $ keyword "let"
+--   eqKeyword = parseCode '='
+
+-- parseExpr :: Parser AST.Expr
+-- parseExpr =
+--   choice
+--     [ parseNumber
+--     , try parseBool
+--     , try parseNull
+--     , parseSymbol
+--     ]
+
+-- |パーサエラー
+-- data ParserErr
+--   = Panic
+--   | UnexpectedToken Text Text
+
+-- instance Show ParserErr where
+--   show = \case
+--     Panic -> "panic!"
+--     UnexpectedToken expected obtained ->
+--       "expected: " ++ unpack expected ++ "obtained: " ++ unpack obtained
+
+-- throwErr :: ParserErr -> Parser a
+-- throwErr = fail . show

@@ -3,7 +3,14 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    hackage: haddock-api-2.25.1@sha256:37839471c3a5937d6a12e6a17cedd2e58ba98d235ee7f6f66293408b9bb9717f,6061
+    pantry-tree:
+      sha256: 74e9ee4972c8adc384db394247c6bfea99d62ddd9c805cced96fe67d686477ac
+      size: 4598
+  original:
+    hackage: haddock-api-2.25.1@sha256:37839471c3a5937d6a12e6a17cedd2e58ba98d235ee7f6f66293408b9bb9717f,6061
 snapshots:
 - completed:
     sha256: 6d1532d40621957a25bad5195bfca7938e8a06d923c91bc52aa0f3c41181f2d4

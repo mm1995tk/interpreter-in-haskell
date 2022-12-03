@@ -27,6 +27,7 @@ library
   exposed-modules:
       AST
       Parser
+      Support.TypeClass
   other-modules:
       Paths_interpreter_in_haskell
   hs-source-dirs:

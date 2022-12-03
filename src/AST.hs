@@ -1,55 +1,62 @@
-{-# LANGUAGE DataKinds #-}
+-- {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DuplicateRecordFields #-}
+-- {-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-partial-fields #-}
 
 module AST (
   Expr (..),
   Program,
   Statement (..),
-  Symbol (..),
+  Identifier (..),
   InfixOp (..),
   PrefixOp (..),
+  Literal (..),
+  Expression (toExpr, mapToExpr),
 ) where
 
 import Data.Text (Text, unpack)
+import Support.TypeClass (Display (display))
 
 type Program = [Statement]
 
-data Statement where
-  Let :: {symbol :: Symbol, expr :: Expr} -> Statement
-  Return :: {returnedExpr :: Expr} -> Statement
-  ExprStmt :: {innerExpr :: Expr, semicolon :: Bool} -> Statement
+data Statement
+  = Let {symbol :: Identifier, expr :: Expr}
+  | Return {returnedExpr :: Expr}
+  | ExprStmt {innerExpr :: Expr, semicolon :: Bool}
+  deriving (Show)
+
+class Expression a where
+  toExpr :: a -> Expr
+  mapToExpr :: (Applicative f) => f a -> f Expr
+  mapToExpr = fmap toExpr
+
+data Expr
+  = LiteralExpr Literal
+  | IdentExpr Identifier
+  | PrefixExpr {prefixOp :: PrefixOp, expr :: Expr}
+  | InfixExpr {infixOp :: InfixOp, leftExpr :: Expr, rightExpr :: Expr}
+  | IfExpr {cond :: Expr, consequence :: Program, alter :: Maybe Program}
+  | FnExpr Fn
+  | CallExpr Call
+  deriving (Show)
+
+data Literal
+  = NumLiteral Int
+  | BoolLiteral Bool
+  | Null
   deriving (Eq, Show)
+instance Expression Literal where
+  toExpr = LiteralExpr
 
--- instance Show Statement where
---   show = \case
---     Let{..} -> "let " ++ show symbol ++ "="
---     _ -> undefined
+newtype Identifier = Identifier Text deriving (Eq, Show, Ord)
+instance Display Identifier where
+  display (Identifier t) = unpack t
+instance Expression Identifier where
+  toExpr = IdentExpr
 
-data Expr where
-  Null :: Expr
-  Number :: Int -> Expr
-  Bool :: Bool -> Expr
-  SymbolExpr :: Symbol -> Expr
-  Prefix :: {prefixOp :: PrefixOp, prefixBody :: Expr} -> Expr
-  Infix :: {infixOp :: InfixOp, leftExp :: Expr, rightExp :: Expr} -> Expr
-  If :: {cond :: Expr, consequence :: Program, alter :: Maybe Program} -> Expr
-  Fn :: {params :: [Symbol], body :: Program} -> Expr
-  Call :: {callExpr :: Expr, args :: [Expr]} -> Expr
-  deriving (Eq)
-
-instance Show Expr where
-  show = \case
-    Null -> "null"
-    Number n -> show n
-    Bool b -> if b then "true" else "false"
-    SymbolExpr (Symbol t) -> unpack t
-    Prefix{..} -> show prefixOp ++ show prefixBody
-    Infix{..} -> show leftExp ++ show infixOp ++ show rightExp
-    _ -> undefined
-
-data PrefixOp = MinusPrefix | Not deriving (Eq)
-instance Show PrefixOp where
-  show = \case
+data PrefixOp = MinusPrefix | Not deriving (Eq, Show)
+instance Display PrefixOp where
+  display = \case
     MinusPrefix -> "-"
     Not -> "!"
 
@@ -62,10 +69,9 @@ data InfixOp
   | Gt
   | Eq
   | NotEq
-  deriving (Eq)
-
-instance Show InfixOp where
-  show = \case
+  deriving (Eq, Show, Ord)
+instance Display InfixOp where
+  display = \case
     Plus -> "+"
     Minus -> "-"
     Multiply -> "*"
@@ -75,6 +81,19 @@ instance Show InfixOp where
     Eq -> "=="
     NotEq -> "!="
 
-newtype Symbol = Symbol Text deriving (Eq)
-instance Show Symbol where
-  show (Symbol t) = unpack t
+data Fn = Fn {params :: [Identifier], body :: Program} deriving (Show)
+instance Expression Fn where
+  toExpr = FnExpr
+
+data Call = Call {called :: CalledFunc, params :: [Expr]} deriving (Show)
+instance Expression Call where
+  toExpr = CallExpr
+
+data CalledFunc
+  = -- | 即時関数
+    Iife Fn
+  | --　| 高階関数
+    HigherOrderFn Call
+  | -- |通常呼び出し
+    CallByIdent Identifier
+  deriving (Show)
