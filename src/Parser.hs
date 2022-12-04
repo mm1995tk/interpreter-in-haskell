@@ -82,10 +82,10 @@ parseIfExpr :: Parser AST.Expr
 parseIfExpr = do
   keyword "if"
   cond <- betweenParen parseExpr
-  consequence <- betweenBrace $ pure [] :: Parser AST.Program
+  consequence <- betweenBrace $ pure [] {-TODO: 後で実装 -} :: Parser AST.Program
   alter <- M.optional $ do
     keyword "else"
-    betweenBrace $ pure [] :: Parser AST.Program
+    betweenBrace $ pure [] {-TODO: 後で実装 -} :: Parser AST.Program
   return AST.IfExpr{..}
 
 parseStmt :: Parser AST.Statement
