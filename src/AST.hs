@@ -92,7 +92,7 @@ instance Expression Call where
 data CalledFunc
   = -- | 即時関数
     Iife Fn
-  | --　| 高階関数
+  | -- | 高階関数
     HigherOrderFn Call
   | -- |通常呼び出し
     CallByIdent Identifier

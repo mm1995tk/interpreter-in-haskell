@@ -62,19 +62,19 @@ parseNumber = AST.NumLiteral <$> lexeme (try $ Mcl.decimal <* M.notFollowedBy Mc
 parseBool :: Parser AST.Literal
 parseBool =
   pt <|> pf
- where
-  pt = AST.BoolLiteral True <$ keyword "true"
-  pf = AST.BoolLiteral False <$ keyword "false"
+  where
+    pt = AST.BoolLiteral True <$ keyword "true"
+    pf = AST.BoolLiteral False <$ keyword "false"
 
 parseNull :: Parser AST.Literal
 parseNull = AST.Null <$ keyword "null"
 
 parseIdent :: Parser AST.Identifier
 parseIdent = wrapByIdent <$> (checkStartFromChar *> exec)
- where
-  checkStartFromChar = M.lookAhead Mc.letterChar
-  exec = lexeme $ M.some Mc.alphaNumChar
-  wrapByIdent = AST.Identifier . pack
+  where
+    checkStartFromChar = M.lookAhead Mc.letterChar
+    exec = lexeme $ M.some Mc.alphaNumChar
+    wrapByIdent = AST.Identifier . pack
 
 parsePrefixExpr :: Parser AST.Expr
 parsePrefixExpr = do
@@ -113,9 +113,9 @@ parseLetStmt = do
   ident <- letKeyword *> (parseIdent <?> "変数名") <* eqKeyword
   expr <- parseExpr <* semicolon
   return AST.Let{..}
- where
-  letKeyword = keyword "let"
-  eqKeyword = char '='
+  where
+    letKeyword = keyword "let"
+    eqKeyword = char '='
 
 parseReturnStmt :: Parser AST.Statement
 parseReturnStmt = do
