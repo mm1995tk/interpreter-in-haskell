@@ -1,6 +1,6 @@
--- {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DuplicateRecordFields #-}
--- {-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-partial-fields #-}
 
 module AST (
@@ -20,10 +20,10 @@ import Support.TypeClass (Display (display))
 type Program = [Statement]
 
 data Statement
-  = Let {symbol :: Identifier, expr :: Expr}
-  | Return {returnedExpr :: Expr}
-  | ExprStmt {innerExpr :: Expr, semicolon :: Bool}
-  deriving (Show)
+  = Let {ident :: Identifier, expr :: Expr}
+  | Return Expr
+  | ExprStmt {expr :: Expr, isSemicolon :: Bool}
+  deriving (Show, Eq)
 
 class Expression a where
   toExpr :: a -> Expr
@@ -38,7 +38,7 @@ data Expr
   | IfExpr {cond :: Expr, consequence :: Program, alter :: Maybe Program}
   | FnExpr Fn
   | CallExpr Call
-  deriving (Show)
+  deriving (Show, Eq)
 
 data Literal
   = NumLiteral Int
@@ -81,11 +81,11 @@ instance Display InfixOp where
     Eq -> "=="
     NotEq -> "!="
 
-data Fn = Fn {params :: [Identifier], body :: Program} deriving (Show)
+data Fn = Fn {params :: [Identifier], body :: Program} deriving (Show, Eq)
 instance Expression Fn where
   toExpr = FnExpr
 
-data Call = Call {called :: CalledFunc, params :: [Expr]} deriving (Show)
+data Call = Call {called :: CalledFunc, params :: [Expr]} deriving (Show, Eq)
 instance Expression Call where
   toExpr = CallExpr
 
@@ -96,4 +96,4 @@ data CalledFunc
     HigherOrderFn Call
   | -- |通常呼び出し
     CallByIdent Identifier
-  deriving (Show)
+  deriving (Show, Eq)

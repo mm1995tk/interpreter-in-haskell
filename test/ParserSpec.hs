@@ -1,27 +1,48 @@
-module ParserSpec (spec_hspec) where
+{-# OPTIONS_GHC -Wno-missing-export-lists #-}
 
-import Test.Hspec (Spec, it, shouldBe)
+module ParserSpec where
 
-spec_hspec :: Spec
-spec_hspec = do
-  it "sample" $
-    (1 :: Int) `shouldBe` 1
+import qualified AST
+import Data.Text (Text)
+import Parser (parse, parseBool, parseIdent, parseNumber)
 
--- describe "boolのパース" $
---   it "is true" $
---     ( case parse parseBool "" (pack "true") of
---         Right v -> show v
---         Left _ -> show (AST.Bool False)
---     )
---       `shouldBe` "true"
+import Test.Hspec (Spec, it)
+import Test.Hspec.Megaparsec (elabel, err, etoks, shouldFailWith, shouldParse, utok, utoks)
+import Text.Megaparsec.Error.Builder (ET)
 
--- describe "numberのパース" $
---   it "is number" $
---     ( case parse parseNumber "" (pack "123") of
---         Right v -> show v
---         Left _ -> show AST.Null
---     )
---       `shouldBe` "123"
+spec_parse_bool :: Spec
+spec_parse_bool = do
+  it "true 空白なし" $
+    parse parseBool "true" `shouldParse` AST.BoolLiteral True
+  it "true 空白あり" $
+    parse parseBool "true  " `shouldParse` AST.BoolLiteral True
+  it "false" $
+    parse parseBool "false" `shouldParse` AST.BoolLiteral False
+  it "falseのtypo `falsee`" $
+    parse parseBool "falsee " `shouldFailWith` err 5 (utok 'e')
+  it "falseのtypo `ffalse`" $
+    parse parseBool "ffalse" `shouldFailWith` err 0 (boolUtoks "ffals")
+  it "適当な文字列" $
+    parse parseBool "abcdeg" `shouldFailWith` err 0 (boolUtoks "abcde")
+ where
+  boolUtoks :: Text -> ET Text
+  boolUtoks t = utoks t <> etoks "false" <> etoks "true"
+
+spec_parse_number :: Spec
+spec_parse_number = do
+  it "数値" $
+    parse parseNumber "19" `shouldParse` AST.NumLiteral 19
+  it "文字列がくっついている" $
+    parse parseNumber "12a" `shouldFailWith` err 2 (utok 'a' <> elabel "digit")
+
+spec_parse_ident :: Spec
+spec_parse_ident = do
+  it "正常" $
+    parse parseIdent "callFunc" `shouldParse` AST.Identifier "callFunc"
+  it "数値が含まれている" $
+    parse parseIdent "callFunc1" `shouldParse` AST.Identifier "callFunc1"
+  it "先頭が数値" $
+    parse parseIdent "12a" `shouldFailWith` err 0 (utok '1' <> elabel "letter")
 
 -- describe "nullのパース" $
 --   it "is null" $
@@ -30,16 +51,3 @@ spec_hspec = do
 --         Left _ -> show $ AST.Number 0
 --     )
 --       `shouldBe` "null"
-
--- describe "symbolのパース" $
---   it "is symbol" $
---     ( case parse parseSymbol "" (pack "abc") of
---         Right v -> show v
---         Left _ -> show $ AST.Number 0
---     )
---       `shouldBe` "abc"
-
--- -- describe "let文のパース（数値のみ受理）" $
--- --   it "is let stmt" $
--- --     parseTest parseLetStmt (pack "let c = 3;")
--- --       `shouldReturn` ()

@@ -80,4 +80,5 @@ tests:
       - tasty
       - tasty-hspec
       - hspec
+      - hspec-megaparsec
       - interpreter-in-haskell

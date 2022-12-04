@@ -1,16 +1,22 @@
-module Parser (Parser, parseExpr) where
+{-# OPTIONS_GHC -Wno-missing-export-lists #-}
+
+module Parser where
 
 import qualified AST
 import Control.Monad (void)
 import Data.Functor ()
-import Data.Text (Text, pack, unpack)
+import Data.Maybe (isJust)
+import Data.Text (Text, pack)
 import Data.Void (Void)
-import Text.Megaparsec (Parsec, try, (<|>))
+import Text.Megaparsec (Parsec, try, (<?>), (<|>))
 import qualified Text.Megaparsec as M
 import qualified Text.Megaparsec.Char as Mc
 import qualified Text.Megaparsec.Char.Lexer as Mcl
 
 type Parser = Parsec Void Text
+
+parse :: Parser a -> Text -> Either (M.ParseErrorBundle Text Void) a
+parse p = M.parse p ""
 
 -- | スペースとコメントをスキップ
 sc :: Parser ()
@@ -45,7 +51,7 @@ parseLiteral :: Parser AST.Literal
 parseLiteral = M.choice [parseNumber, parseBool, parseNull]
 
 parseNumber :: Parser AST.Literal
-parseNumber = AST.NumLiteral <$> lexeme Mcl.decimal
+parseNumber = AST.NumLiteral <$> lexeme (try $ Mcl.decimal <* M.notFollowedBy Mc.alphaNumChar)
 
 parseBool :: Parser AST.Literal
 parseBool =
@@ -58,7 +64,11 @@ parseNull :: Parser AST.Literal
 parseNull = AST.Null <$ keyword "null"
 
 parseIdent :: Parser AST.Identifier
-parseIdent = AST.Identifier . pack <$> lexeme (M.some Mc.alphaNumChar :: Parser String)
+parseIdent = wrapByIdent <$> (checkStartFromChar *> exec)
+ where
+  checkStartFromChar = M.lookAhead Mc.letterChar
+  exec = lexeme $ M.some Mc.alphaNumChar
+  wrapByIdent = AST.Identifier . pack
 
 parseExpr :: Parser AST.Expr
 parseExpr =
@@ -78,33 +88,34 @@ parseIfExpr = do
     betweenBrace $ pure [] :: Parser AST.Program
   return AST.IfExpr{..}
 
--- parseSymbol :: Parser AST.Expr
--- parseSymbol = AST.SymbolExpr . AST.Symbol . pack <$> lexeme (some alphaNumChar :: Parser String)
+parseStmt :: Parser AST.Statement
+parseStmt = M.choice [parseLetStmt, parseReturnStmt, parseExprStmt]
 
--- parseLetStmt :: Parser AST.Statement
--- parseLetStmt = do
---   expr <- letKeyword *> (parseExpr <?> "変数名") <* eqKeyword
---   symbol <- case expr of
---     (AST.SymbolExpr symbol) -> pure symbol
---     _ -> throwErr Panic
---   AST.Let symbol <$> parseExpr <* parseSemicolon
---  where
---   letKeyword = void $ keyword "let"
---   eqKeyword = parseCode '='
+parseLetStmt :: Parser AST.Statement
+parseLetStmt = do
+  ident <- letKeyword *> (parseIdent <?> "変数名") <* eqKeyword
+  expr <- parseExpr <* semicolon
+  return AST.Let{..}
+ where
+  letKeyword = void $ keyword "let"
+  eqKeyword = char '='
 
--- parseExpr :: Parser AST.Expr
--- parseExpr =
---   choice
---     [ parseNumber
---     , try parseBool
---     , try parseNull
---     , parseSymbol
---     ]
+parseReturnStmt :: Parser AST.Statement
+parseReturnStmt = do
+  void $ keyword "return"
+  AST.Return <$> parseExpr <* semicolon
 
--- |パーサエラー
--- data ParserErr
---   = Panic
---   | UnexpectedToken Text Text
+parseExprStmt :: Parser AST.Statement
+parseExprStmt = do
+  expr <- parseExpr
+  isSemicolon <- isJust <$> M.optional semicolon
+  return AST.ExprStmt{..}
+
+{- |パーサエラー
+ data ParserErr
+   = Panic
+   | UnexpectedToken Text Text
+-}
 
 -- instance Show ParserErr where
 --   show = \case
