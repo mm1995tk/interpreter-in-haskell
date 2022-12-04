@@ -14,8 +14,8 @@ module AST (
   Expression (toExpr, mapToExpr),
 ) where
 
-import Data.Text (Text, unpack)
-import Support.TypeClass (Display (display))
+import Data.Text (Text)
+import Support.TypeClass (Display (..))
 
 type Program = [Statement]
 
@@ -50,13 +50,13 @@ instance Expression Literal where
 
 newtype Identifier = Identifier Text deriving (Eq, Show, Ord)
 instance Display Identifier where
-  display (Identifier t) = unpack t
+  displayText (Identifier t) = t
 instance Expression Identifier where
   toExpr = IdentExpr
 
 data PrefixOp = MinusPrefix | Not deriving (Eq, Show)
 instance Display PrefixOp where
-  display = \case
+  displayText = \case
     MinusPrefix -> "-"
     Not -> "!"
 
@@ -71,7 +71,7 @@ data InfixOp
   | NotEq
   deriving (Eq, Show, Ord)
 instance Display InfixOp where
-  display = \case
+  displayText = \case
     Plus -> "+"
     Minus -> "-"
     Multiply -> "*"

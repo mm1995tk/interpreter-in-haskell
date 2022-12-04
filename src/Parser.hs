@@ -12,6 +12,8 @@ import Data.Text (Text, pack)
 import Parser.Error (Error (..))
 import qualified Parser.Error as ParserError
 
+import Data.Functor (($>))
+import Support.TypeClass (Display (..))
 import Text.Megaparsec (Parsec, try, (<?>), (<|>))
 import qualified Text.Megaparsec as M
 import qualified Text.Megaparsec.Char as Mc
@@ -74,6 +76,16 @@ parseIdent = wrapByIdent <$> (checkStartFromChar *> exec)
   exec = lexeme $ M.some Mc.alphaNumChar
   wrapByIdent = AST.Identifier . pack
 
+parsePrefixExpr :: Parser AST.Expr
+parsePrefixExpr = do
+  prefixOp <-
+    M.choice . fmap lexToken $
+      [ AST.MinusPrefix
+      , AST.Not
+      ]
+  expr <- parseExpr
+  return AST.PrefixExpr{..}
+
 parseExpr :: Parser AST.Expr
 parseExpr =
   M.choice
@@ -81,6 +93,7 @@ parseExpr =
     , parseIfExpr
     , AST.mapToExpr parseIdent
     ]
+    <?> "expression"
 
 parseIfExpr :: Parser AST.Expr
 parseIfExpr = do
@@ -101,12 +114,12 @@ parseLetStmt = do
   expr <- parseExpr <* semicolon
   return AST.Let{..}
  where
-  letKeyword = void $ keyword "let"
+  letKeyword = keyword "let"
   eqKeyword = char '='
 
 parseReturnStmt :: Parser AST.Statement
 parseReturnStmt = do
-  void $ keyword "return"
+  keyword "return"
   AST.Return <$> parseExpr <* semicolon
 
 parseExprStmt :: Parser AST.Statement
@@ -114,3 +127,6 @@ parseExprStmt = do
   expr <- parseExpr
   isSemicolon <- isJust <$> M.optional semicolon
   return AST.ExprStmt{..}
+
+lexToken :: (Display a) => a -> Parser a
+lexToken token = (lexeme . Mc.string . displayText $ token) $> token

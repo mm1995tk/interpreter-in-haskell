@@ -4,7 +4,7 @@ module ParserSpec where
 
 import qualified AST
 import Data.Text (Text)
-import Parser (parse, parseBool, parseIdent, parseNumber)
+import Parser (parse, parseBool, parseIdent, parseNull, parseNumber, parsePrefixExpr)
 
 import Test.Hspec (Spec, it)
 import Test.Hspec.Megaparsec (elabel, err, etoks, shouldFailWith, shouldParse, utok, utoks)
@@ -35,6 +35,13 @@ spec_parse_number = do
   it "文字列がくっついている" $
     parse parseNumber "12a" `shouldFailWith` err 2 (utok 'a' <> elabel "digit")
 
+spec_parse_null :: Spec
+spec_parse_null = do
+  it "正常" $
+    parse parseNull "null " `shouldParse` AST.Null
+  it "文字中に\"null\"を含むident `nullable`" $
+    parse parseNull "nullable" `shouldFailWith` err 4 (utok 'a')
+
 spec_parse_ident :: Spec
 spec_parse_ident = do
   it "正常" $
@@ -44,10 +51,9 @@ spec_parse_ident = do
   it "先頭が数値" $
     parse parseIdent "12a" `shouldFailWith` err 0 (utok '1' <> elabel "letter")
 
--- describe "nullのパース" $
---   it "is null" $
---     ( case parse parseNull "" (pack "null") of
---         Right v -> show v
---         Left _ -> show $ AST.Number 0
---     )
---       `shouldBe` "null"
+spec_parse_prefix_expr :: Spec
+spec_parse_prefix_expr = do
+  it "正常" $
+    parse parsePrefixExpr "-1" `shouldParse` AST.PrefixExpr{prefixOp = AST.MinusPrefix, expr = AST.LiteralExpr (AST.NumLiteral 1)}
+  it "前置演算子と式の間にスペースがある場合" $
+    parse parsePrefixExpr "- 1  " `shouldParse` AST.PrefixExpr{prefixOp = AST.MinusPrefix, expr = AST.LiteralExpr (AST.NumLiteral 1)}
