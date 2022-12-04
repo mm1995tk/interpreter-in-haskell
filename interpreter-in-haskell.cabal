@@ -27,6 +27,7 @@ library
   exposed-modules:
       AST
       Parser
+      Parser.Error
       Support.TypeClass
   other-modules:
       Paths_interpreter_in_haskell

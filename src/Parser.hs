@@ -3,19 +3,23 @@
 module Parser where
 
 import qualified AST
+
 import Control.Monad (void)
-import Data.Functor ()
+
 import Data.Maybe (isJust)
 import Data.Text (Text, pack)
-import Data.Void (Void)
+
+import Parser.Error (Error (..))
+import qualified Parser.Error as ParserError
+
 import Text.Megaparsec (Parsec, try, (<?>), (<|>))
 import qualified Text.Megaparsec as M
 import qualified Text.Megaparsec.Char as Mc
 import qualified Text.Megaparsec.Char.Lexer as Mcl
 
-type Parser = Parsec Void Text
+type Parser = Parsec Error Text
 
-parse :: Parser a -> Text -> Either (M.ParseErrorBundle Text Void) a
+parse :: Parser a -> Text -> Either (M.ParseErrorBundle Text Error) a
 parse p = M.parse p ""
 
 -- | スペースとコメントをスキップ
@@ -82,10 +86,10 @@ parseIfExpr :: Parser AST.Expr
 parseIfExpr = do
   keyword "if"
   cond <- betweenParen parseExpr
-  consequence <- betweenBrace $ pure [] {-TODO: 後で実装 -} :: Parser AST.Program
+  consequence <- betweenBrace $ ParserError.throwError Panic
   alter <- M.optional $ do
     keyword "else"
-    betweenBrace $ pure [] {-TODO: 後で実装 -} :: Parser AST.Program
+    betweenBrace $ ParserError.throwError Panic
   return AST.IfExpr{..}
 
 parseStmt :: Parser AST.Statement
@@ -110,18 +114,3 @@ parseExprStmt = do
   expr <- parseExpr
   isSemicolon <- isJust <$> M.optional semicolon
   return AST.ExprStmt{..}
-
-{- |パーサエラー
- data ParserErr
-   = Panic
-   | UnexpectedToken Text Text
--}
-
--- instance Show ParserErr where
---   show = \case
---     Panic -> "panic!"
---     UnexpectedToken expected obtained ->
---       "expected: " ++ unpack expected ++ "obtained: " ++ unpack obtained
-
--- throwErr :: ParserErr -> Parser a
--- throwErr = fail . show
