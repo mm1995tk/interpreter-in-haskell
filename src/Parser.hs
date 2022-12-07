@@ -3,16 +3,12 @@
 module Parser where
 
 import qualified AST
-
 import Control.Monad (void)
-
+import Data.Functor (($>))
 import Data.Maybe (isJust)
 import Data.Text (Text, pack)
-
 import Parser.Error (Error (..))
 import qualified Parser.Error as ParserError
-
-import Data.Functor (($>))
 import Support.TypeClass (Display (..))
 import Text.Megaparsec (Parsec, try, (<?>), (<|>))
 import qualified Text.Megaparsec as M
