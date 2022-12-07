@@ -41,10 +41,10 @@ keyword :: Text -> Parser ()
 keyword t = void . lexeme . try $ Mc.string t <* M.notFollowedBy Mc.alphaNumChar
 
 betweenParen :: Parser a -> Parser a
-betweenParen = lexeme . M.between "(" ")"
+betweenParen = lexeme . M.between (char '(') (char ')')
 
 betweenBrace :: Parser a -> Parser a
-betweenBrace = lexeme . M.between "{" "}"
+betweenBrace = lexeme . M.between (char '{') (char '}')
 
 semicolon :: Parser ()
 semicolon = char ';'
@@ -82,6 +82,7 @@ parseExpr =
   M.choice
     [ AST.mapToExpr parseLiteral
     , parseIfExpr
+    , AST.mapToExpr parseFn
     , AST.mapToExpr parseIdent
     ]
     <?> "expression"
@@ -95,6 +96,14 @@ parseIfExpr = do
     keyword "else"
     betweenBrace $ ParserError.throwError Panic
   return AST.IfExpr{..}
+
+-- TODO: テストを書く！
+parseFn :: Parser AST.Fn
+parseFn = do
+  keyword "fn"
+  params <- betweenParen (M.many (parseIdent <* M.optional (char ',')))
+  body <- betweenBrace (M.many parseStmt)
+  return AST.Fn{..}
 
 parseStmt :: Parser AST.Statement
 parseStmt = M.choice [parseLetStmt, parseReturnStmt, parseExprStmt]

@@ -1,6 +1,6 @@
 module Main (main) where
 import Text.Megaparsec (parseTest)
-import Parser (parseExpr, parseStmt)
+import Parser (parseExpr, parseStmt,parseFn)
 
 main :: IO ()
 main = do
@@ -13,3 +13,4 @@ main = do
   parseTest parseStmt "let c1 = null;"
   parseTest parseStmt "let null = null;"
   parseTest parseStmt "let nullable = null;"
+  parseTest parseExpr "fn( x , y   , ) {  let nullable = null;  let nullable = null; }"

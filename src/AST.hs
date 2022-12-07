@@ -11,6 +11,7 @@ module AST (
   InfixOp (..),
   PrefixOp (..),
   Literal (..),
+  Fn(..),
   Expression (toExpr, mapToExpr),
 ) where
 
