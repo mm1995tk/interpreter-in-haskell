@@ -4,8 +4,9 @@ module ParserSpec where
 
 import qualified AST
 import Data.Text (Text)
-import Parser (parse, parseBool, parseIdent, parseNull, parseNumber, parsePrefixExpr)
+import Parser (parse, parseBool, parseFn, parseIdent, parseNull, parseNumber, parsePrefixExpr)
 
+import AST (Statement (ident))
 import Test.Hspec (Spec, it)
 import Test.Hspec.Megaparsec (elabel, err, etoks, shouldFailWith, shouldParse, utok, utoks)
 import Text.Megaparsec.Error.Builder (ET)
@@ -24,9 +25,9 @@ spec_parse_bool = do
     parse parseBool "ffalse" `shouldFailWith` err 0 (boolUtoks "ffals")
   it "適当な文字列" $
     parse parseBool "abcdeg" `shouldFailWith` err 0 (boolUtoks "abcde")
- where
-  boolUtoks :: Text -> ET Text
-  boolUtoks t = utoks t <> etoks "false" <> etoks "true"
+  where
+    boolUtoks :: Text -> ET Text
+    boolUtoks t = utoks t <> etoks "false" <> etoks "true"
 
 spec_parse_number :: Spec
 spec_parse_number = do
@@ -54,6 +55,19 @@ spec_parse_ident = do
 spec_parse_prefix_expr :: Spec
 spec_parse_prefix_expr = do
   it "正常" $
-    parse parsePrefixExpr "-1" `shouldParse` AST.PrefixExpr{prefixOp = AST.MinusPrefix, expr = AST.LiteralExpr (AST.NumLiteral 1)}
+    parse parsePrefixExpr "-1" `shouldParse` AST.PrefixExpr{prefixOp = AST.MinusPrefix, expr = AST.LiteralExpr $ AST.NumLiteral 1}
   it "前置演算子と式の間にスペースがある場合" $
-    parse parsePrefixExpr "- 1  " `shouldParse` AST.PrefixExpr{prefixOp = AST.MinusPrefix, expr = AST.LiteralExpr (AST.NumLiteral 1)}
+    parse parsePrefixExpr "- 1  " `shouldParse` AST.PrefixExpr{prefixOp = AST.MinusPrefix, expr = AST.LiteralExpr $ AST.NumLiteral 1}
+
+spec_parse_fn_expr :: Spec
+spec_parse_fn_expr = do
+  it "正常" $
+    parse parseFn "fn( x , y   , ) {  let nullable = null ; let x = 1; return x;}"
+      `shouldParse` AST.Fn
+        { params = [AST.Identifier "x", AST.Identifier "y"]
+        , body =
+            [ AST.Let{ident = AST.Identifier "nullable", expr = AST.LiteralExpr AST.Null}
+            , AST.Let{ident = AST.Identifier "x", expr = AST.LiteralExpr $ AST.NumLiteral 1}
+            , AST.Return . AST.IdentExpr $ AST.Identifier "x"
+            ]
+        }

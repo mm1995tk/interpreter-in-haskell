@@ -97,7 +97,6 @@ parseIfExpr = do
     betweenBrace $ ParserError.throwError Panic
   return AST.IfExpr{..}
 
--- TODO: テストを書く！
 parseFn :: Parser AST.Fn
 parseFn = do
   keyword "fn"
