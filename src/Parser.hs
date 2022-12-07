@@ -98,11 +98,10 @@ parseIfExpr = do
   return AST.IfExpr{..}
 
 parseFn :: Parser AST.Fn
-parseFn = do
-  keyword "fn"
-  params <- betweenParen (M.many (parseIdent <* M.optional (char ',')))
-  body <- betweenBrace (M.many parseStmt)
-  return AST.Fn{..}
+parseFn =
+  (keyword "fn" $> AST.Fn)
+    <*> betweenParen (M.many $ parseIdent <* M.optional (char ','))
+    <*> betweenBrace (M.many parseStmt)
 
 parseStmt :: Parser AST.Statement
 parseStmt = M.choice [parseLetStmt, parseReturnStmt, parseExprStmt]
