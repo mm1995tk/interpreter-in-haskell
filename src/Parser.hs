@@ -77,14 +77,9 @@ parseIdent = wrapByIdent <$> (checkStartFromChar *> exec)
     wrapByIdent = AST.Identifier . pack
 
 parsePrefixExpr :: Parser AST.Expr
-parsePrefixExpr = do
-  prefixOp <-
-    M.choice . fmap lexToken $
-      [ AST.MinusPrefix
-      , AST.Not
-      ]
-  expr <- parseExpr
-  return AST.PrefixExpr{..}
+parsePrefixExpr = AST.PrefixExpr <$> parsePrefixOp <*> parseExpr
+  where
+    parsePrefixOp = M.choice . fmap lexToken $ [AST.MinusPrefix, AST.Not]
 
 parseExpr :: Parser AST.Expr
 parseExpr =
