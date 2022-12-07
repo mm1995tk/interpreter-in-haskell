@@ -3,6 +3,7 @@
 module Parser where
 
 import qualified AST
+import qualified AST as ASt
 import Control.Monad (void)
 import Data.Functor (($>))
 import Data.Maybe (isJust)
@@ -88,23 +89,23 @@ parseExpr =
     <?> "expression"
 
 parseIfExpr :: Parser AST.Expr
-parseIfExpr = do
-  keyword "if"
-  cond <- betweenParen parseExpr
-  consequence <- betweenBrace $ ParserError.throwError Panic
-  alter <- M.optional $ do
-    keyword "else"
-    betweenBrace $ ParserError.throwError Panic
-  return AST.IfExpr{..}
+parseIfExpr =
+  (keyword "if" $> AST.IfExpr)
+    <*> betweenParen parseExpr
+    <*> parseBlockStmt
+    <*> M.optional (keyword "else" *> parseBlockStmt)
 
 parseFn :: Parser AST.Fn
 parseFn =
   (keyword "fn" $> AST.Fn)
     <*> betweenParen (M.many $ parseIdent <* M.optional (char ','))
-    <*> betweenBrace (M.many parseStmt)
+    <*> parseBlockStmt
 
 parseStmt :: Parser AST.Statement
 parseStmt = M.choice [parseLetStmt, parseReturnStmt, parseExprStmt]
+
+parseBlockStmt :: Parser ASt.Program
+parseBlockStmt = betweenBrace $ M.many parseStmt
 
 parseLetStmt :: Parser AST.Statement
 parseLetStmt = do
