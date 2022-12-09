@@ -22,62 +22,37 @@ type Parser = Parsec Error Text
 parse :: Parser a -> Text -> Either (M.ParseErrorBundle Text Error) a
 parse p = M.parse p ""
 
--- | スペースとコメントをスキップ
-sc :: Parser ()
-sc =
-  Mcl.space
-    Mc.space1
-    (Mcl.skipLineComment "//")
-    (Mcl.skipBlockComment "/*" "*/")
+parseTest :: Text -> IO ()
+parseTest = M.parseTest parseProgram
 
--- | 'sc'を末尾に適用
-lexeme :: Parser a -> Parser a
-lexeme = Mcl.lexeme sc
+parseProgram :: Parser AST.Program
+parseProgram = M.many parseStmt <* M.eof
 
--- |文字
-char :: Char -> Parser ()
-char = void . lexeme . Mc.char
+parseStmt :: Parser AST.Statement
+parseStmt = M.choice [parseLetStmt, parseReturnStmt, parseExprStmt]
 
--- |予約語
-keyword :: Text -> Parser ()
-keyword t = void . lexeme . try $ Mc.string t <* M.notFollowedBy Mc.alphaNumChar
+parseBlockStmt :: Parser ASt.Program
+parseBlockStmt = betweenBrace $ M.many parseStmt
 
-betweenParen :: Parser a -> Parser a
-betweenParen = lexeme . M.between (char '(') (char ')')
-
-betweenBrace :: Parser a -> Parser a
-betweenBrace = lexeme . M.between (char '{') (char '}')
-
-semicolon :: Parser ()
-semicolon = char ';'
-
-parseLiteral :: Parser AST.Literal
-parseLiteral = M.choice [parseNumber, parseBool, parseNull]
-
-parseNumber :: Parser AST.Literal
-parseNumber = AST.NumLiteral <$> lexeme (Mcl.decimal <* M.notFollowedBy Mc.alphaNumChar)
-
-parseBool :: Parser AST.Literal
-parseBool =
-  pt <|> pf
+parseLetStmt :: Parser AST.Statement
+parseLetStmt = do
+  ident <- letKeyword *> (parseIdent <?> "変数名") <* eqKeyword
+  expr <- parseExprDefault <* semicolon
+  return AST.Let{..}
   where
-    pt = AST.BoolLiteral True <$ keyword "true"
-    pf = AST.BoolLiteral False <$ keyword "false"
+    letKeyword = keyword "let"
+    eqKeyword = char '='
 
-parseNull :: Parser AST.Literal
-parseNull = AST.Null <$ keyword "null"
+parseReturnStmt :: Parser AST.Statement
+parseReturnStmt = do
+  keyword "return"
+  AST.Return <$> parseExprDefault <* semicolon
 
-parseIdent :: Parser AST.Identifier
-parseIdent = wrapByIdent <$> (checkStartFromChar *> exec)
-  where
-    checkStartFromChar = M.lookAhead Mc.letterChar
-    exec = lexeme $ M.some Mc.alphaNumChar
-    wrapByIdent = AST.Identifier . pack
-
-parsePrefixExpr :: Parser AST.Expr
-parsePrefixExpr = AST.PrefixExpr <$> parsePrefixOp <*> parseExprDefault
-  where
-    parsePrefixOp = M.choice . fmap lexToken $ [AST.MinusPrefix, AST.Not]
+parseExprStmt :: Parser AST.Statement
+parseExprStmt = do
+  expr <- parseExprDefault
+  isSemicolon <- isJust <$> M.optional semicolon
+  return AST.ExprStmt{..}
 
 parseExprDefault :: Parser AST.Expr
 parseExprDefault = parseExpr AST.Lowest
@@ -114,6 +89,11 @@ parseAtomicExpr =
     ]
     <?> "expression"
 
+parsePrefixExpr :: Parser AST.Expr
+parsePrefixExpr = AST.PrefixExpr <$> parsePrefixOp <*> parseExprDefault
+  where
+    parsePrefixOp = M.choice . fmap lexToken $ [AST.MinusPrefix, AST.Not]
+
 parseIfExpr :: Parser AST.Expr
 parseIfExpr =
   (keyword "if" $> AST.IfExpr)
@@ -136,31 +116,57 @@ parseCall =
         )
     <*> betweenParen (M.many $ parseExprDefault <* M.optional (char ','))
 
-parseStmt :: Parser AST.Statement
-parseStmt = M.choice [parseLetStmt, parseReturnStmt, parseExprStmt]
-
-parseBlockStmt :: Parser ASt.Program
-parseBlockStmt = betweenBrace $ M.many parseStmt
-
-parseLetStmt :: Parser AST.Statement
-parseLetStmt = do
-  ident <- letKeyword *> (parseIdent <?> "変数名") <* eqKeyword
-  expr <- parseExprDefault <* semicolon
-  return AST.Let{..}
+parseIdent :: Parser AST.Identifier
+parseIdent = wrapByIdent <$> (checkStartFromChar *> exec)
   where
-    letKeyword = keyword "let"
-    eqKeyword = char '='
+    checkStartFromChar = M.lookAhead Mc.letterChar
+    exec = lexeme $ M.some Mc.alphaNumChar
+    wrapByIdent = AST.Identifier . pack
 
-parseReturnStmt :: Parser AST.Statement
-parseReturnStmt = do
-  keyword "return"
-  AST.Return <$> parseExprDefault <* semicolon
+parseLiteral :: Parser AST.Literal
+parseLiteral = M.choice [parseNumber, parseBool, parseNull]
 
-parseExprStmt :: Parser AST.Statement
-parseExprStmt = do
-  expr <- parseExprDefault
-  isSemicolon <- isJust <$> M.optional semicolon
-  return AST.ExprStmt{..}
+parseNumber :: Parser AST.Literal
+parseNumber = AST.NumLiteral <$> lexeme (Mcl.decimal <* M.notFollowedBy Mc.alphaNumChar)
+
+parseBool :: Parser AST.Literal
+parseBool =
+  pt <|> pf
+  where
+    pt = AST.BoolLiteral True <$ keyword "true"
+    pf = AST.BoolLiteral False <$ keyword "false"
+
+parseNull :: Parser AST.Literal
+parseNull = AST.Null <$ keyword "null"
 
 lexToken :: (Display a) => a -> Parser a
 lexToken token = (lexeme . Mc.string . displayText $ token) $> token
+
+-- | スペースとコメントをスキップ
+sc :: Parser ()
+sc =
+  Mcl.space
+    Mc.space1
+    (Mcl.skipLineComment "//")
+    (Mcl.skipBlockComment "/*" "*/")
+
+-- | 'sc'を末尾に適用
+lexeme :: Parser a -> Parser a
+lexeme = Mcl.lexeme sc
+
+-- |文字
+char :: Char -> Parser ()
+char = void . lexeme . Mc.char
+
+-- |予約語
+keyword :: Text -> Parser ()
+keyword t = void . lexeme . try $ Mc.string t <* M.notFollowedBy Mc.alphaNumChar
+
+betweenParen :: Parser a -> Parser a
+betweenParen = lexeme . M.between (char '(') (char ')')
+
+betweenBrace :: Parser a -> Parser a
+betweenBrace = lexeme . M.between (char '{') (char '}')
+
+semicolon :: Parser ()
+semicolon = char ';'

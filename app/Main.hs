@@ -1,7 +1,7 @@
 module Main (main) where
 
-import Parser (parseExprDefault)
-import Text.Megaparsec (parseTest)
+import Parser (parseTest)
+
 
 main :: IO ()
 main = do
@@ -15,7 +15,7 @@ main = do
   -- parseTest parseStmt "let null = null;"
   -- parseTest parseStmt "let nullable = null;"
   -- parseTest parseExpr "fn( x , y   , ) {  let nullable = null;  let nullable = null; }"
-  parseTest parseExprDefault "1  + != 2 + 3 * 4"
-  parseTest parseExprDefault "1   + 2 + 3 * 4"
-  parseTest parseExprDefault "1  - 2 + 3 * 4"
-  parseTest parseExprDefault "fun(1 + 2,3) + func(3,4,5)"
+  parseTest "1  + != 2 + 3 * 4"
+  parseTest "1   + 2 + 3 * 4"
+  parseTest "1  - 2 + 3 * 4"
+  parseTest "fun(1 + 2,3) + func(3,4,5)"
