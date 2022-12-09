@@ -1,6 +1,4 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE DuplicateRecordFields #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -Wno-partial-fields #-}
 
 module AST (
@@ -11,8 +9,9 @@ module AST (
   InfixOp (..),
   PrefixOp (..),
   Literal (..),
-  Fn(..),
   Expression (toExpr, mapToExpr),
+  getInfixPrecedence,
+  PrecedenceOfInfixOp(..)
 ) where
 
 import Data.Text (Text)
@@ -37,8 +36,8 @@ data Expr
   | PrefixExpr {prefixOp :: PrefixOp, expr :: Expr}
   | InfixExpr {infixOp :: InfixOp, leftExpr :: Expr, rightExpr :: Expr}
   | IfExpr {cond :: Expr, consequence :: Program, alter :: Maybe Program}
-  | FnExpr Fn
-  | CallExpr Call
+  | FnExpr {params :: [Identifier], body :: Program}
+  | CallExpr {called :: Expr, args :: [Expr]}
   deriving (Show, Eq)
 
 data Literal
@@ -71,6 +70,18 @@ data InfixOp
   | Eq
   | NotEq
   deriving (Eq, Show, Ord)
+
+getInfixPrecedence :: InfixOp -> PrecedenceOfInfixOp
+getInfixPrecedence = \case
+  Plus -> Sum
+  Minus -> Sum
+  Multiply -> Product
+  Divide -> Product
+  Lt -> LessOrGreater
+  Gt -> LessOrGreater
+  Eq -> Equals
+  NotEq -> Equals
+
 instance Display InfixOp where
   displayText = \case
     Plus -> "+"
@@ -82,19 +93,11 @@ instance Display InfixOp where
     Eq -> "=="
     NotEq -> "!="
 
-data Fn = Fn {params :: [Identifier], body :: Program} deriving (Show, Eq)
-instance Expression Fn where
-  toExpr = FnExpr
-
-data Call = Call {called :: CalledFunc, params :: [Expr]} deriving (Show, Eq)
-instance Expression Call where
-  toExpr = CallExpr
-
-data CalledFunc
-  = -- | 即時関数
-    Iife Fn
-  | -- | 高階関数
-    HigherOrderFn Call
-  | -- |通常呼び出し
-    CallByIdent Identifier
-  deriving (Show, Eq)
+data PrecedenceOfInfixOp
+  = Lowest
+  | Equals
+  | LessOrGreater
+  | Sum
+  | Product
+  | Prefix
+  deriving (Show, Eq, Ord)

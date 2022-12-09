@@ -9,7 +9,8 @@ import Data.Functor (($>))
 import Data.Maybe (isJust)
 import Data.Text (Text, pack)
 import Parser.Error (Error (..))
-import qualified Parser.Error as ParserError
+
+-- import qualified Parser.Error as ParserError
 import Support.TypeClass (Display (..))
 import Text.Megaparsec (Parsec, try, (<?>), (<|>))
 import qualified Text.Megaparsec as M
@@ -54,7 +55,7 @@ parseLiteral :: Parser AST.Literal
 parseLiteral = M.choice [parseNumber, parseBool, parseNull]
 
 parseNumber :: Parser AST.Literal
-parseNumber = AST.NumLiteral <$> lexeme (try $ Mcl.decimal <* M.notFollowedBy Mc.alphaNumChar)
+parseNumber = AST.NumLiteral <$> lexeme (Mcl.decimal <* M.notFollowedBy Mc.alphaNumChar)
 
 parseBool :: Parser AST.Literal
 parseBool =
@@ -74,30 +75,53 @@ parseIdent = wrapByIdent <$> (checkStartFromChar *> exec)
     wrapByIdent = AST.Identifier . pack
 
 parsePrefixExpr :: Parser AST.Expr
-parsePrefixExpr = AST.PrefixExpr <$> parsePrefixOp <*> parseExpr
+parsePrefixExpr = AST.PrefixExpr <$> parsePrefixOp <*> parseExprDefault
   where
     parsePrefixOp = M.choice . fmap lexToken $ [AST.MinusPrefix, AST.Not]
 
-parseExpr :: Parser AST.Expr
-parseExpr =
-  M.choice
-    [ AST.mapToExpr parseLiteral
-    , parseIfExpr
-    , AST.mapToExpr parseFn
-    , AST.mapToExpr parseIdent
-    ]
-    <?> "expression"
+parseExprDefault :: Parser AST.Expr
+parseExprDefault = parseExpr AST.Lowest
+
+parseExpr :: AST.PrecedenceOfInfixOp -> Parser AST.Expr
+parseExpr precedence = do
+  leftExpr <- parseLeft
+  maybeInfixOp <- M.optional parseInfixOp
+  case maybeInfixOp of
+    Just infixOp
+      | AST.getInfixPrecedence infixOp > precedence ->
+        AST.InfixExpr infixOp leftExpr <$> (M.notFollowedBy parseInfixOp *> parseExpr precedence)
+    _ -> return leftExpr
+  where
+    parseInfixOp =
+      M.choice . fmap lexToken $
+        [ AST.Plus
+        , AST.Minus
+        , AST.Multiply
+        , AST.Divide
+        , AST.Lt
+        , AST.Gt
+        , AST.Eq
+        , AST.NotEq
+        ]
+    parseLeft =
+      M.choice
+        [ AST.mapToExpr parseLiteral
+        , parseIfExpr
+        , parseFn
+        , AST.mapToExpr parseIdent
+        ]
+        <?> "expression"
 
 parseIfExpr :: Parser AST.Expr
 parseIfExpr =
   (keyword "if" $> AST.IfExpr)
-    <*> betweenParen parseExpr
+    <*> betweenParen parseExprDefault
     <*> parseBlockStmt
     <*> M.optional (keyword "else" *> parseBlockStmt)
 
-parseFn :: Parser AST.Fn
+parseFn :: Parser AST.Expr
 parseFn =
-  (keyword "fn" $> AST.Fn)
+  (keyword "fn" $> AST.FnExpr)
     <*> betweenParen (M.many $ parseIdent <* M.optional (char ','))
     <*> parseBlockStmt
 
@@ -110,7 +134,7 @@ parseBlockStmt = betweenBrace $ M.many parseStmt
 parseLetStmt :: Parser AST.Statement
 parseLetStmt = do
   ident <- letKeyword *> (parseIdent <?> "変数名") <* eqKeyword
-  expr <- parseExpr <* semicolon
+  expr <- parseExprDefault <* semicolon
   return AST.Let{..}
   where
     letKeyword = keyword "let"
@@ -119,11 +143,11 @@ parseLetStmt = do
 parseReturnStmt :: Parser AST.Statement
 parseReturnStmt = do
   keyword "return"
-  AST.Return <$> parseExpr <* semicolon
+  AST.Return <$> parseExprDefault <* semicolon
 
 parseExprStmt :: Parser AST.Statement
 parseExprStmt = do
-  expr <- parseExpr
+  expr <- parseExprDefault
   isSemicolon <- isJust <$> M.optional semicolon
   return AST.ExprStmt{..}
 

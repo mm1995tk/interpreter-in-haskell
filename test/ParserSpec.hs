@@ -35,7 +35,6 @@ spec_parse_number = do
     parse parseNumber "19" `shouldParse` AST.NumLiteral 19
   it "文字列がくっついている" $
     parse parseNumber "12a" `shouldFailWith` err 2 (utok 'a' <> elabel "digit")
-
 spec_parse_null :: Spec
 spec_parse_null = do
   it "正常" $
@@ -63,7 +62,7 @@ spec_parse_fn_expr :: Spec
 spec_parse_fn_expr = do
   it "正常" $
     parse parseFn "fn( x , y   , ) {  let nullable = null ; let x = 1; return x;}"
-      `shouldParse` AST.Fn
+      `shouldParse` AST.FnExpr
         { params = [AST.Identifier "x", AST.Identifier "y"]
         , body =
             [ AST.Let{ident = AST.Identifier "nullable", expr = AST.LiteralExpr AST.Null}
