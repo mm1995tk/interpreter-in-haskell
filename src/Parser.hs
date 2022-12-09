@@ -10,7 +10,7 @@ import Data.Maybe (isJust)
 import Data.Text (Text, pack)
 import Parser.Error (Error (..))
 
--- import qualified Parser.Error as ParserError
+import qualified Parser.Error as ParserError
 import Support.TypeClass (Display (..))
 import Text.Megaparsec (Parsec, try, (<?>), (<|>))
 import qualified Text.Megaparsec as M
@@ -84,9 +84,8 @@ parseExprDefault = parseExpr AST.Lowest
 
 parseExpr :: AST.PrecedenceOfInfixOp -> Parser AST.Expr
 parseExpr precedence = do
-  leftExpr <- parseLeft
-  maybeInfixOp <- M.optional parseInfixOp
-  case maybeInfixOp of
+  leftExpr <- M.choice [try parseCall, parseAtomicExpr]
+  M.optional parseInfixOp >>= \case
     Just infixOp
       | AST.getInfixPrecedence infixOp > precedence ->
         AST.InfixExpr infixOp leftExpr <$> (M.notFollowedBy parseInfixOp *> parseExpr precedence)
@@ -103,14 +102,17 @@ parseExpr precedence = do
         , AST.Eq
         , AST.NotEq
         ]
-    parseLeft =
-      M.choice
-        [ AST.mapToExpr parseLiteral
-        , parseIfExpr
-        , parseFn
-        , AST.mapToExpr parseIdent
-        ]
-        <?> "expression"
+
+parseAtomicExpr :: Parser AST.Expr
+parseAtomicExpr =
+  M.choice
+    [ parsePrefixExpr
+    , AST.mapToExpr parseLiteral
+    , parseIfExpr
+    , parseFn
+    , AST.mapToExpr parseIdent
+    ]
+    <?> "expression"
 
 parseIfExpr :: Parser AST.Expr
 parseIfExpr =
@@ -124,6 +126,15 @@ parseFn =
   (keyword "fn" $> AST.FnExpr)
     <*> betweenParen (M.many $ parseIdent <* M.optional (char ','))
     <*> parseBlockStmt
+
+parseCall :: Parser AST.Expr
+parseCall =
+  AST.CallExpr
+    <$> ( parseAtomicExpr >>= \case
+            AST.LiteralExpr _ -> ParserError.throwError ParserError.Panic
+            called' -> return called'
+        )
+    <*> betweenParen (M.many $ parseExprDefault <* M.optional (char ','))
 
 parseStmt :: Parser AST.Statement
 parseStmt = M.choice [parseLetStmt, parseReturnStmt, parseExprStmt]

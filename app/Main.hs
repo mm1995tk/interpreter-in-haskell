@@ -18,3 +18,4 @@ main = do
   parseTest parseExprDefault "1  + != 2 + 3 * 4"
   parseTest parseExprDefault "1   + 2 + 3 * 4"
   parseTest parseExprDefault "1  - 2 + 3 * 4"
+  parseTest parseExprDefault "fun(1 + 2,3) + func(3,4,5)"
