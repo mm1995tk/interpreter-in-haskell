@@ -20,7 +20,7 @@ import qualified Text.Megaparsec.Char.Lexer as Mcl
 type Parser = Parsec Error Text
 
 parse :: Parser a -> Text -> Either (M.ParseErrorBundle Text Error) a
-parse p = M.parse p ""
+parse = flip M.parse ""
 
 parseTest :: Text -> IO ()
 parseTest = M.parseTest parseProgram
@@ -82,10 +82,10 @@ parseAtomicExpr :: Parser AST.Expr
 parseAtomicExpr =
   M.choice
     [ parsePrefixExpr
-    , AST.mapToExpr parseLiteral
+    , parseLiteral
     , parseIfExpr
     , parseFn
-    , AST.mapToExpr parseIdent
+    , fmap AST.IdentExpr parseIdent
     ]
     <?> "expression"
 
@@ -123,21 +123,14 @@ parseIdent = wrapByIdent <$> (checkStartFromChar *> exec)
     exec = lexeme $ M.some Mc.alphaNumChar
     wrapByIdent = AST.Identifier . pack
 
-parseLiteral :: Parser AST.Literal
-parseLiteral = M.choice [parseNumber, parseBool, parseNull]
-
-parseNumber :: Parser AST.Literal
-parseNumber = AST.NumLiteral <$> lexeme (Mcl.decimal <* M.notFollowedBy Mc.alphaNumChar)
-
-parseBool :: Parser AST.Literal
-parseBool =
-  pt <|> pf
+parseLiteral :: Parser AST.Expr
+parseLiteral = AST.LiteralExpr <$> (M.choice  [parseNumber, parseBool, parseNull] <?> "literals")
   where
-    pt = AST.BoolLiteral True <$ keyword "true"
-    pf = AST.BoolLiteral False <$ keyword "false"
-
-parseNull :: Parser AST.Literal
-parseNull = AST.Null <$ keyword "null"
+    parseNull = AST.Null <$ keyword "null"
+    parseNumber = AST.NumLiteral <$> lexeme (Mcl.decimal <* M.notFollowedBy Mc.alphaNumChar)
+    parseBool =
+      (AST.BoolLiteral True <$ keyword "true")
+        <|> (AST.BoolLiteral False <$ keyword "false")
 
 lexToken :: (Display a) => a -> Parser a
 lexToken token = (lexeme . Mc.string . displayText $ token) $> token

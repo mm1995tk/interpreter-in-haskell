@@ -9,9 +9,8 @@ module AST (
   InfixOp (..),
   PrefixOp (..),
   Literal (..),
-  Expression (toExpr, mapToExpr),
   getInfixPrecedence,
-  PrecedenceOfInfixOp(..)
+  PrecedenceOfInfixOp (..),
 ) where
 
 import Data.Text (Text)
@@ -24,11 +23,6 @@ data Statement
   | Return Expr
   | ExprStmt {expr :: Expr, isSemicolon :: Bool}
   deriving (Show, Eq)
-
-class Expression a where
-  toExpr :: a -> Expr
-  mapToExpr :: (Applicative f) => f a -> f Expr
-  mapToExpr = fmap toExpr
 
 data Expr
   = LiteralExpr Literal
@@ -45,14 +39,10 @@ data Literal
   | BoolLiteral Bool
   | Null
   deriving (Eq, Show)
-instance Expression Literal where
-  toExpr = LiteralExpr
 
 newtype Identifier = Identifier Text deriving (Eq, Show, Ord)
 instance Display Identifier where
   displayText (Identifier t) = t
-instance Expression Identifier where
-  toExpr = IdentExpr
 
 data PrefixOp = MinusPrefix | Not deriving (Eq, Show)
 instance Display PrefixOp where

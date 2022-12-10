@@ -4,43 +4,41 @@ module ParserSpec where
 
 import qualified AST
 import Data.Text (Text)
-import Parser (parse, parseBool, parseFn, parseIdent, parseNull, parseNumber, parsePrefixExpr)
+import Parser (parse, parseFn, parseIdent, parseLiteral, parsePrefixExpr)
 
 import AST (Statement (ident))
-import Test.Hspec (Spec, it)
+import Test.Hspec (Spec, describe, it)
 import Test.Hspec.Megaparsec (elabel, err, etoks, shouldFailWith, shouldParse, utok, utoks)
 import Text.Megaparsec.Error.Builder (ET)
 
-spec_parse_bool :: Spec
-spec_parse_bool = do
-  it "true 空白なし" $
-    parse parseBool "true" `shouldParse` AST.BoolLiteral True
-  it "true 空白あり" $
-    parse parseBool "true  " `shouldParse` AST.BoolLiteral True
-  it "false" $
-    parse parseBool "false" `shouldParse` AST.BoolLiteral False
-  it "falseのtypo `falsee`" $
-    parse parseBool "falsee " `shouldFailWith` err 5 (utok 'e')
-  it "falseのtypo `ffalse`" $
-    parse parseBool "ffalse" `shouldFailWith` err 0 (boolUtoks "ffals")
-  it "適当な文字列" $
-    parse parseBool "abcdeg" `shouldFailWith` err 0 (boolUtoks "abcde")
+spec_parse_literal :: Spec
+spec_parse_literal = do
+  describe "booleanのパース" $ do
+    it "true 空白なし" $
+      parse parseLiteral "true" `shouldParse` AST.LiteralExpr (AST.BoolLiteral True)
+    it "true 空白あり" $
+      parse parseLiteral "true  " `shouldParse` AST.LiteralExpr (AST.BoolLiteral True)
+    it "false" $
+      parse parseLiteral "false" `shouldParse` AST.LiteralExpr (AST.BoolLiteral False)
+    it "falseのtypo `falsee`" $
+      parse parseLiteral "falsee " `shouldFailWith` err 5 (literalUtoks "e")
+    it "falseのtypo `ffalse`" $
+      parse parseLiteral "ffalse" `shouldFailWith` err 0 (literalUtoks "ffals")
+    it "適当な文字列" $
+      parse parseLiteral "abcdeg" `shouldFailWith` err 0 (literalUtoks "abcde")
+  describe "数値のパース" $ do
+    it "数値" $
+      parse parseLiteral "19" `shouldParse` AST.LiteralExpr (AST.NumLiteral 19)
+    it "文字列がくっついている" $
+      parse parseLiteral "12a" `shouldFailWith` err 2 (utok 'a' <> elabel "digit")
+  describe "nullのパース" $ do
+    it "正常" $
+      parse parseLiteral "null " `shouldParse` AST.LiteralExpr AST.Null
+    it "文字中に\"null\"を含むident `nullable`" $
+      parse parseLiteral "nullable" `shouldFailWith` err 4 (literalUtoks "a")
   where
-    boolUtoks :: Text -> ET Text
-    boolUtoks t = utoks t <> etoks "false" <> etoks "true"
-
-spec_parse_number :: Spec
-spec_parse_number = do
-  it "数値" $
-    parse parseNumber "19" `shouldParse` AST.NumLiteral 19
-  it "文字列がくっついている" $
-    parse parseNumber "12a" `shouldFailWith` err 2 (utok 'a' <> elabel "digit")
-spec_parse_null :: Spec
-spec_parse_null = do
-  it "正常" $
-    parse parseNull "null " `shouldParse` AST.Null
-  it "文字中に\"null\"を含むident `nullable`" $
-    parse parseNull "nullable" `shouldFailWith` err 4 (utok 'a')
+    literalUtoks :: Text -> ET Text
+    literalUtoks t = utoks t <> elabel "literals"
 
 spec_parse_ident :: Spec
 spec_parse_ident = do
