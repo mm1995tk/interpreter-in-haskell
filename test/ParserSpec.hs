@@ -8,7 +8,7 @@ import Parser (parse, parseFn, parseIdent, parseLiteral, parsePrefixExpr)
 
 import AST (Statement (ident))
 import Test.Hspec (Spec, describe, it)
-import Test.Hspec.Megaparsec (elabel, err, etoks, shouldFailWith, shouldParse, utok, utoks)
+import Test.Hspec.Megaparsec (elabel, err, shouldFailWith, shouldParse, utok, utoks)
 import Text.Megaparsec.Error.Builder (ET)
 
 spec_parse_literal :: Spec
@@ -52,9 +52,17 @@ spec_parse_ident = do
 spec_parse_prefix_expr :: Spec
 spec_parse_prefix_expr = do
   it "正常" $
-    parse parsePrefixExpr "-1" `shouldParse` AST.PrefixExpr{prefixOp = AST.MinusPrefix, expr = AST.LiteralExpr $ AST.NumLiteral 1}
+    parse parsePrefixExpr "-1"
+      `shouldParse` AST.PrefixExpr
+        { prefixOp = AST.MinusPrefix
+        , expr = AST.LiteralExpr $ AST.NumLiteral 1
+        }
   it "前置演算子と式の間にスペースがある場合" $
-    parse parsePrefixExpr "- 1  " `shouldParse` AST.PrefixExpr{prefixOp = AST.MinusPrefix, expr = AST.LiteralExpr $ AST.NumLiteral 1}
+    parse parsePrefixExpr "- 1  "
+      `shouldParse` AST.PrefixExpr
+        { prefixOp = AST.MinusPrefix
+        , expr = AST.LiteralExpr $ AST.NumLiteral 1
+        }
 
 spec_parse_fn_expr :: Spec
 spec_parse_fn_expr = do
@@ -63,8 +71,14 @@ spec_parse_fn_expr = do
       `shouldParse` AST.FnExpr
         { params = [AST.Identifier "x", AST.Identifier "y"]
         , body =
-            [ AST.Let{ident = AST.Identifier "nullable", expr = AST.LiteralExpr AST.Null}
-            , AST.Let{ident = AST.Identifier "x", expr = AST.LiteralExpr $ AST.NumLiteral 1}
+            [ AST.Let
+                { ident = AST.Identifier "nullable"
+                , expr = AST.LiteralExpr AST.Null
+                }
+            , AST.Let
+                { ident = AST.Identifier "x"
+                , expr = AST.LiteralExpr $ AST.NumLiteral 1
+                }
             , AST.Return . AST.IdentExpr $ AST.Identifier "x"
             ]
         }
