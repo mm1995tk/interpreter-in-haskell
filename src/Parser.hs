@@ -9,7 +9,6 @@ import Data.Functor (($>))
 import Data.Maybe (isJust)
 import Data.Text (Text, pack)
 import Parser.Error (Error (..))
-
 import qualified Parser.Error as ParserError
 import Support.TypeClass (Display (..))
 import Text.Megaparsec (Parsec, try, (<?>), (<|>))
@@ -36,23 +35,18 @@ parseBlockStmt = betweenBrace $ M.many parseStmt
 
 parseLetStmt :: Parser AST.Statement
 parseLetStmt = do
-  ident <- letKeyword *> (parseIdent <?> "変数名") <* eqKeyword
-  expr <- parseExprDefault <* semicolon
+  keyword "let"
+  ident <- parseIdent <?> "変数名"
+  char '='
+  expr <- parseExprDefault
+  semicolon
   return AST.Let{..}
-  where
-    letKeyword = keyword "let"
-    eqKeyword = char '='
 
 parseReturnStmt :: Parser AST.Statement
-parseReturnStmt = do
-  keyword "return"
-  AST.Return <$> parseExprDefault <* semicolon
+parseReturnStmt = AST.Return <$ keyword "return" <*> parseExprDefault <* semicolon
 
 parseExprStmt :: Parser AST.Statement
-parseExprStmt = do
-  expr <- parseExprDefault
-  isSemicolon <- isJust <$> M.optional semicolon
-  return AST.ExprStmt{..}
+parseExprStmt = AST.ExprStmt <$> parseExprDefault <*> (isJust <$> M.optional semicolon)
 
 parseExprDefault :: Parser AST.Expr
 parseExprDefault = parseExpr AST.Lowest
@@ -124,7 +118,7 @@ parseIdent = wrapByIdent <$> (checkStartFromChar *> exec)
     wrapByIdent = AST.Identifier . pack
 
 parseLiteral :: Parser AST.Expr
-parseLiteral = AST.LiteralExpr <$> (M.choice  [parseNumber, parseBool, parseNull] <?> "literals")
+parseLiteral = AST.LiteralExpr <$> (M.choice [parseNumber, parseBool, parseNull] <?> "literals")
   where
     parseNull = AST.Null <$ keyword "null"
     parseNumber = AST.NumLiteral <$> lexeme (Mcl.decimal <* M.notFollowedBy Mc.alphaNumChar)
