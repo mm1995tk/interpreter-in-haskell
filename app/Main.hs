@@ -16,6 +16,6 @@ main = do
   -- parseTest parseStmt "let nullable = null;"
   -- parseTest parseExpr "fn( x , y   , ) {  let nullable = null;  let nullable = null; }"
   parseTest "1  + != 2 + 3 * 4"
-  parseTest "1   + 2 + 3 * 4"
+  parseTest "( 1   + 2 ) + 3 * 4"
   parseTest "1  - 2 + 3 * 4"
   parseTest "fun(1 + 2,3) + func(3,4,5)"
