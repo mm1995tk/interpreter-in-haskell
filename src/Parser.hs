@@ -51,9 +51,6 @@ parseExprStmt = AST.ExprStmt <$> parseExprDefault <*> (isJust <$> M.optional sem
 parseExprDefault :: Parser AST.Expr
 parseExprDefault = parseExpr AST.Lowest
 
-parseGroupExpr :: Parser AST.Expr
-parseGroupExpr = betweenParen parseExprDefault
-
 parseExpr :: AST.PrecedenceOfInfixOp -> Parser AST.Expr
 parseExpr precedence = do
   leftExpr <- M.choice [try parseGroupExpr, try parseCall, parseAtomicExpr]
@@ -63,6 +60,7 @@ parseExpr precedence = do
         AST.InfixExpr infixOp leftExpr <$> (M.notFollowedBy parseInfixOp *> parseExpr precedence)
     _ -> return leftExpr
   where
+    parseGroupExpr = betweenParen parseExprDefault
     parseInfixOp =
       M.choice . fmap lexToken $
         [ AST.Plus
