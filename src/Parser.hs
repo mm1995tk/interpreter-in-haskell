@@ -25,7 +25,7 @@ parseTest :: Text -> IO ()
 parseTest = M.parseTest parseProgram
 
 parseProgram :: Parser AST.Program
-parseProgram = M.many parseStmt <* M.eof
+parseProgram = sc *> M.many parseStmt <* M.eof
 
 parseStmt :: Parser AST.Statement
 parseStmt = M.choice [parseLetStmt, parseReturnStmt, parseExprStmt]
