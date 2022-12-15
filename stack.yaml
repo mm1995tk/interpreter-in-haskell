@@ -1,8 +1,7 @@
 resolver: lts-19.33
 packages:
 - .
-nix:
-  enable: true
+
 
 # extra-deps:
 #   - haddock-api-2.25.1@sha256:37839471c3a5937d6a12e6a17cedd2e58ba98d235ee7f6f66293408b9bb9717f,6061
