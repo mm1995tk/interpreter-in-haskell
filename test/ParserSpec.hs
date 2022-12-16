@@ -2,13 +2,14 @@
 
 module ParserSpec where
 
+import AST (Statement (ident))
 import qualified AST
 import Data.Text (Text)
-import Parser (parse, parseFn, parseIdent, parseLiteral, parsePrefixExpr)
-
-import AST (Statement (ident))
+import Parser (parse, parseCall, parseFn, parseIdent, parseLiteral, parsePrefixExpr)
+import qualified Parser.Error as ParserError
 import Test.Hspec (Spec, describe, it)
-import Test.Hspec.Megaparsec (elabel, err, shouldFailWith, shouldParse, utok, utoks)
+import Test.Hspec.Megaparsec (EF, elabel, err, errFancy, fancy, shouldFailWith, shouldParse, utok, utoks)
+import Text.Megaparsec (ErrorFancy (ErrorCustom))
 import Text.Megaparsec.Error.Builder (ET)
 
 spec_parse_literal :: Spec
@@ -82,3 +83,24 @@ spec_parse_fn_expr = do
             , AST.Return . AST.IdentExpr $ AST.Identifier "x"
             ]
         }
+
+spec_parse_call_expr :: Spec
+spec_parse_call_expr = do
+  it "正常" $
+    parse parseCall "func(x, plus(x,y))"
+      `shouldParse` AST.CallExpr
+        { called = AST.IdentExpr $ AST.Identifier "func"
+        , args =
+            [ AST.IdentExpr $ AST.Identifier "x"
+            , AST.CallExpr
+                { called = AST.IdentExpr $ AST.Identifier "plus"
+                , args = [AST.IdentExpr $ AST.Identifier "x", AST.IdentExpr $ AST.Identifier "y"]
+                }
+            ]
+        }
+  it "呼び出し箇所がリテラル" $
+    parse parseCall "1(x, plus(x,y))"
+      `shouldFailWith` errFancy 1 (fancyErr $ ParserError.UnexpectedToken "expression that returns a function when evaluated" "literal")
+
+fancyErr :: e -> EF e
+fancyErr = fancy . ErrorCustom

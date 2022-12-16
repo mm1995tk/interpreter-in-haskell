@@ -106,7 +106,7 @@ parseCall :: Parser AST.Expr
 parseCall =
   AST.CallExpr
     <$> ( parseAtomicExpr >>= \case
-            AST.LiteralExpr _ -> ParserError.throwError ParserError.Panic
+            AST.LiteralExpr _ -> ParserError.throwError $ ParserError.UnexpectedToken "expression that returns a function when evaluated" "literal"
             called' -> return called'
         )
     <*> betweenParen (M.many $ parseExprDefault <* M.optional (char ','))
