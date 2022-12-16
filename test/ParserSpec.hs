@@ -5,7 +5,7 @@ module ParserSpec where
 import AST (Statement (ident))
 import qualified AST
 import Data.Text (Text)
-import Parser (parse, parseCall, parseFn, parseIdent, parseLiteral, parsePrefixExpr)
+import Parser (parse, parseCall, parseFn, parseIdent, parseIfExpr, parseLiteral, parsePrefixExpr)
 import qualified Parser.Error as ParserError
 import Test.Hspec (Spec, describe, it)
 import Test.Hspec.Megaparsec (EF, elabel, err, errFancy, fancy, shouldFailWith, shouldParse, utok, utoks)
@@ -101,6 +101,16 @@ spec_parse_call_expr = do
   it "呼び出し箇所がリテラル" $
     parse parseCall "1(x, plus(x,y))"
       `shouldFailWith` errFancy 1 (fancyErr $ ParserError.UnexpectedToken "expression that returns a function when evaluated" "literal")
+
+spec_parse_if_expr :: Spec
+spec_parse_if_expr = do
+  it "正常" $
+    parse parseIfExpr "if (x) {return x;} else {return globalVar;}"
+      `shouldParse` AST.IfExpr
+        { cond = AST.IdentExpr $ AST.Identifier "x"
+        , consequence = [AST.Return . AST.IdentExpr $ AST.Identifier "x"]
+        , alter = Just [AST.Return . AST.IdentExpr $ AST.Identifier "globalVar"]
+        }
 
 fancyErr :: e -> EF e
 fancyErr = fancy . ErrorCustom
