@@ -1,19 +1,18 @@
-module Evaluator.MonkeyValue (MonkeyValue (..), MonkeyValueObj (..), isTruthy, unwrap, wrapLitPure) where
+{-# OPTIONS_GHC -Wno-partial-fields #-}
 
-data MonkeyValue
-  = ReturnValue MonkeyValueObj
-  | LiteralValue MonkeyValueObj
+module Evaluator.MonkeyValue (
+  isTruthy,
+  unwrap,
+  wrapLitPure,
+) where
 
-data MonkeyValueObj
-  = MonkeyInt Int
-  | MonkeyBool Bool
-  | MonkeyNull
-  deriving (Show, Eq)
+import Evaluator.Type (MonkeyValue (..), MonkeyValueObj (..))
 
 isTruthy :: MonkeyValueObj -> Bool
 isTruthy MonkeyNull = False
 isTruthy (MonkeyInt _) = True
 isTruthy (MonkeyBool b) = b
+isTruthy (MonkeyFn{}) = True
 
 unwrap :: MonkeyValue -> MonkeyValueObj
 unwrap (ReturnValue v) = v

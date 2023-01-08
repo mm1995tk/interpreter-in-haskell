@@ -7,17 +7,17 @@ import AST (Expr (..), Identifier (..), InfixOp (..), Literal (..), PrefixOp (..
 import qualified Evaluator.Combinator as EC
 import qualified Evaluator.Env as EE
 import Evaluator.Error (EvalError (NotImpl), EvalErrorOr)
-import Evaluator.MonkeyValue (MonkeyValue (..), MonkeyValueObj (..))
 import qualified Evaluator.MonkeyValue as Monkey
+import Evaluator.Type (Evaluator (..), MonkeyValue (..), MonkeyValueObj (..))
 
 eval :: Program -> EvalErrorOr MonkeyValueObj
 eval p = EC.evalOutput (Monkey.unwrap <$> evalProgram p) (EE.fromList [("sample", LiteralValue $ MonkeyInt 3)])
 
-evalProgram :: Program -> EC.Evaluator MonkeyValue
+evalProgram :: Program -> Evaluator MonkeyValue
 evalProgram [] = Monkey.wrapLitPure MonkeyNull
 evalProgram (x : _) = evalStmt x
 
-evalStmt :: Statement -> EC.Evaluator MonkeyValue
+evalStmt :: Statement -> Evaluator MonkeyValue
 evalStmt (ExprStmt _ True) = Monkey.wrapLitPure MonkeyNull
 evalStmt (ExprStmt e _) = evalExpr e
 evalStmt (Return e) =
@@ -26,7 +26,7 @@ evalStmt (Return e) =
     LiteralValue v -> pure . ReturnValue $ v
 evalStmt (Let{}) = undefined
 
-evalExpr :: Expr -> EC.Evaluator MonkeyValue
+evalExpr :: Expr -> Evaluator MonkeyValue
 evalExpr (LiteralExpr l) = Monkey.wrapLitPure $ case l of
   NumLiteral n -> MonkeyInt n
   BoolLiteral b -> MonkeyBool b
@@ -45,6 +45,7 @@ evalExpr (PrefixExpr op expr) = case op of
         MonkeyInt _ -> Monkey.wrapLitPure $ MonkeyBool False
         MonkeyBool b -> Monkey.wrapLitPure $ MonkeyBool (not b)
         MonkeyNull -> Monkey.wrapLitPure $ MonkeyBool True
+        MonkeyFn{} -> Monkey.wrapLitPure $ MonkeyBool False
   where
     evaluated = evalExpr expr
 evalExpr (IdentExpr (Identifier ident)) = do

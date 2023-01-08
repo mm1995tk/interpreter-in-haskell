@@ -1,17 +1,19 @@
-module Evaluator.Env (Env, empty, fromList, lookup) where
+module Evaluator.Env (
+  empty,
+  fromList,
+  lookup,
+) where
 
 import qualified Data.Map as M
 import Data.Text (Text)
-import Evaluator.MonkeyValue (MonkeyValue)
+import Evaluator.Type (Env (..), MonkeyValue)
 import Prelude hiding (lookup)
 
-type Env = M.Map Text MonkeyValue
-
 empty :: Env
-empty = M.empty
+empty = Env M.empty
 
 fromList :: [(Text, MonkeyValue)] -> Env
-fromList = M.fromList
+fromList = Env . M.fromList
 
 lookup :: Text -> Env -> Maybe MonkeyValue
-lookup = M.lookup
+lookup t (Env e) = M.lookup t e
