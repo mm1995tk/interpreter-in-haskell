@@ -8,10 +8,10 @@ import qualified Evaluator.Combinator as EC
 import qualified Evaluator.Env as EE
 import Evaluator.Error (EvalError (NotImpl), EvalErrorOr)
 import qualified Evaluator.MonkeyValue as Monkey
-import Evaluator.Type (Evaluator (..), MonkeyValue (..), MonkeyValueObj (..))
+import Evaluator.Type (Env, Evaluator (..), MonkeyValue (..), MonkeyValueObj (..))
 
-eval :: Program -> EvalErrorOr MonkeyValueObj
-eval p = EC.evalOutput (Monkey.unwrap <$> evalProgram p) (EE.fromList [("sample", LiteralValue $ MonkeyInt 3)])
+eval :: Program -> Env -> EvalErrorOr (MonkeyValueObj, Env)
+eval p = runEvaluator (Monkey.unwrap <$> evalProgram p)
 
 evalProgram :: Program -> Evaluator MonkeyValue
 evalProgram [] = Monkey.wrapLitPure MonkeyNull
@@ -24,7 +24,11 @@ evalStmt (Return e) =
   evalExpr e >>= \case
     v@(ReturnValue _) -> pure v
     LiteralValue v -> pure . ReturnValue $ v
-evalStmt (Let{}) = undefined
+evalStmt (Let (Identifier key) expr) = do
+  env <- EC.get
+  evaluated <- evalExpr expr
+  EC.put $ EE.upsert key evaluated env
+  Monkey.wrapLitPure MonkeyNull
 
 evalExpr :: Expr -> Evaluator MonkeyValue
 evalExpr (LiteralExpr l) = Monkey.wrapLitPure $ case l of

@@ -2,6 +2,7 @@ module Evaluator.Env (
   empty,
   fromList,
   lookup,
+  upsert,
 ) where
 
 import qualified Data.Map as M
@@ -17,3 +18,6 @@ fromList = Env . M.fromList
 
 lookup :: Text -> Env -> Maybe MonkeyValue
 lookup t (Env e) = M.lookup t e
+
+upsert :: Text -> MonkeyValue -> Env -> Env
+upsert t mv (Env e) = Env $ M.insert t mv e
