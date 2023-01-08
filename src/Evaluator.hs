@@ -86,4 +86,8 @@ evalExpr (IfExpr{..}) = do
     else case alter of
       Just p -> evalProgram p
       _ -> pure $ LiteralValue MonkeyNull
+evalExpr (FnExpr{..}) = do
+  localEnv <- EC.get
+  let program = body
+  Monkey.wrapLitPure MonkeyFn{..}
 evalExpr _ = undefined
