@@ -1,21 +1,39 @@
 module Main (main) where
 
-import Parser (parseTest)
-
+import Control.Concurrent
+import qualified Data.Text as T
+import Evaluator (eval)
+import Parser (parse, parseProgram)
+import System.IO (hFlush, stdout)
+import System.Posix.Signals (
+  Handler (Catch),
+  installHandler,
+  keyboardSignal,
+ )
 
 main :: IO ()
 main = do
-  -- parseTest parseExpr "123 "
-  -- parseTest parseExpr "null "
-  -- parseTest parseExpr "abc "
-  -- parseTest parseExpr "true "
-  -- parseTest parseExpr "trueman "
-  -- parseTest parseExpr "if (1) {} else {} "
-  -- parseTest parseStmt "let c1 = null;"
-  -- parseTest parseStmt "let null = null;"
-  -- parseTest parseStmt "let nullable = null;"
-  -- parseTest parseExpr "fn( x , y   , ) {  let nullable = null;  let nullable = null; }"
-  parseTest "1  + != 2 + 3 * 4"
-  parseTest " ( 1   + 2 ) + 3 * 4"
-  parseTest "1  - 2 + 3 * 4"
-  parseTest "fun(1 + 2,3) + func(3,4,5)"
+  repl
+
+repl :: IO ()
+repl = do
+  setSignal
+  putStrLn "Welcome to Monkey Language REPL.\n"
+  loop
+  where
+    setSignal = do
+      tid <- myThreadId
+      _ <- installHandler keyboardSignal (Catch $ handler tid) Nothing
+      return ()
+    handler tid = do
+      putStrLn "goodbye!"
+      killThread tid
+    loop = do
+      putStr ">> "
+      hFlush stdout
+      input <- T.pack <$> getLine
+      putStrLn $ case parse parseProgram input of
+        Left e -> show e
+        Right p -> show $ eval p
+      putStrLn ""
+      loop

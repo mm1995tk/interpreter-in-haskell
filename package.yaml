@@ -1,21 +1,22 @@
-name:                interpreter-in-haskell
-version:             0.1.0.0
-github:              "githubuser/interpreter-in-haskell"
-license:             BSD3
-author:              "mm1995tk"
-copyright:           "2022 mm1995tk"
+name: interpreter-in-haskell
+version: 0.1.0.0
+github: "githubuser/interpreter-in-haskell"
+license: BSD3
+author: "mm1995tk"
+copyright: "2022 mm1995tk"
 
 extra-source-files:
-- README.md
-- CHANGELOG.md
+  - README.md
+  - CHANGELOG.md
 
-description:         Please see the README on GitHub at <https://github.com/githubuser/interpreter-in-haskell#readme>
+description: Please see the README on GitHub at <https://github.com/githubuser/interpreter-in-haskell#readme>
 
 dependencies:
   - base >= 4.7 && < 5
   - text
   - megaparsec
   - transformers
+  - unix
 
 # default-language: GHC2021
 
@@ -68,7 +69,7 @@ tests:
     build-tools:
       - tasty-discover
 
-    dependencies: 
+    dependencies:
       - tasty
       - tasty-hspec
       - hspec
