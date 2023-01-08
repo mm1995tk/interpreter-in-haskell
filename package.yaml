@@ -17,6 +17,7 @@ dependencies:
   - megaparsec
   - transformers
   - unix
+  - containers
 
 # default-language: GHC2021
 

@@ -1,9 +1,23 @@
-module Evaluator.MonkeyValue (MonkeyValue, MonkeyValueObj (..)) where
+module Evaluator.MonkeyValue (MonkeyValue (..), MonkeyValueObj (..), isTruthy, unwrap, wrapLitPure) where
 
-class MonkeyValue a
+data MonkeyValue
+  = ReturnValue MonkeyValueObj
+  | LiteralValue MonkeyValueObj
 
 data MonkeyValueObj
   = MonkeyInt Int
   | MonkeyBool Bool
   | MonkeyNull
-  deriving (Show)
+  deriving (Show, Eq)
+
+isTruthy :: MonkeyValueObj -> Bool
+isTruthy MonkeyNull = False
+isTruthy (MonkeyInt _) = True
+isTruthy (MonkeyBool b) = b
+
+unwrap :: MonkeyValue -> MonkeyValueObj
+unwrap (ReturnValue v) = v
+unwrap (LiteralValue v) = v
+
+wrapLitPure :: (Applicative m) => MonkeyValueObj -> m MonkeyValue
+wrapLitPure = pure . LiteralValue
