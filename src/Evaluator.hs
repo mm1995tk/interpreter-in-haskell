@@ -1,5 +1,6 @@
 module Evaluator (
-  eval,evalProgram
+  eval,
+  evalProgram,
 ) where
 
 import AST (Expr (..), Literal (..), PrefixOp (..), Program, Statement (..))
@@ -27,14 +28,14 @@ evalExpr (LiteralExpr l) = pure $ case l of
   Null -> MonkeyNull
 evalExpr (PrefixExpr op expr) = case op of
   MinusPrefix ->
-    k >>= \case
+    evaluated >>= \case
       MonkeyInt n -> pure $ MonkeyInt (-n)
       _ -> E.throwErr NotImpl
   Not ->
-    k >>= \case
-      MonkeyInt _ -> E.throwErr NotImpl
+    evaluated >>= \case
+      MonkeyInt _ -> pure $ MonkeyBool False
       MonkeyBool b -> pure $ MonkeyBool (not b)
       MonkeyNull -> pure $ MonkeyBool True
   where
-    k = evalExpr expr
+    evaluated = evalExpr expr
 evalExpr _ = undefined
