@@ -4,18 +4,18 @@ module Evaluator (
 ) where
 
 import AST (Expr (..), Identifier (..), InfixOp (..), Literal (..), PrefixOp (..), Program, Statement (..))
-import qualified Evaluator.Combinator as EC
 import qualified Evaluator.Env as EE
-import Evaluator.Error (EvalError (NotImpl), EvalErrorOr)
+import Evaluator.Error (EvalError (..), EvalErrorOr, throwErr)
 import qualified Evaluator.MonkeyValue as Monkey
-import Evaluator.Type (Env, Evaluator (..), MonkeyValue (..), MonkeyValueObj (..))
+import Evaluator.Type (Env, Evaluator, MonkeyValue (..), MonkeyValueObj (..), runEvaluator)
+import qualified Evaluator.Type as Evaluator (get, put)
 
 eval :: Program -> Env -> EvalErrorOr (MonkeyValueObj, Env)
 eval p = runEvaluator (Monkey.unwrap <$> evalProgram p)
 
 evalProgram :: Program -> Evaluator MonkeyValue
 evalProgram [] = Monkey.wrapLitPure MonkeyNull
-evalProgram (x : _) = evalStmt x
+evalProgram p = last <$> mapM evalStmt p
 
 evalStmt :: Statement -> Evaluator MonkeyValue
 evalStmt (ExprStmt _ True) = Monkey.wrapLitPure MonkeyNull
@@ -25,9 +25,9 @@ evalStmt (Return e) =
     v@(ReturnValue _) -> pure v
     LiteralValue v -> pure . ReturnValue $ v
 evalStmt (Let (Identifier key) expr) = do
-  env <- EC.get
+  env <- Evaluator.get
   evaluated <- evalExpr expr
-  EC.put $ EE.upsert key evaluated env
+  Evaluator.put $ EE.upsert key evaluated env
   Monkey.wrapLitPure MonkeyNull
 
 evalExpr :: Expr -> Evaluator MonkeyValue
@@ -41,7 +41,7 @@ evalExpr (PrefixExpr op expr) = case op of
       v@(ReturnValue _) -> pure v
       LiteralValue v -> case v of
         MonkeyInt n -> Monkey.wrapLitPure $ MonkeyInt (-n)
-        _ -> EC.throwErr NotImpl
+        _ -> throwErr NotImpl
   Not ->
     evaluated >>= \case
       v@(ReturnValue _) -> pure v
@@ -53,9 +53,9 @@ evalExpr (PrefixExpr op expr) = case op of
   where
     evaluated = evalExpr expr
 evalExpr (IdentExpr (Identifier ident)) = do
-  maybeValue <- EE.lookup ident <$> EC.get
-  case maybeValue of
-    Nothing -> EC.throwErr NotImpl
+  env <- Evaluator.get
+  case EE.lookup ident env of
+    Nothing -> throwErr . Debug . show $ env
     Just mv -> pure mv
 evalExpr (InfixExpr{..}) = do
   l <- Monkey.unwrap <$> evalExpr leftExpr
@@ -64,23 +64,23 @@ evalExpr (InfixExpr{..}) = do
     Plus -> case (l, r) of
       (MonkeyInt a, MonkeyInt b) -> Monkey.wrapLitPure $ MonkeyInt (a + b)
       (MonkeyBool a, MonkeyBool b) -> Monkey.wrapLitPure $ MonkeyBool (a || b)
-      _ -> EC.throwErr NotImpl
+      _ -> throwErr NotImpl
     Minus -> case (l, r) of
       (MonkeyInt a, MonkeyInt b) -> Monkey.wrapLitPure $ MonkeyInt (a - b)
-      _ -> EC.throwErr NotImpl
+      _ -> throwErr NotImpl
     Multiply -> case (l, r) of
       (MonkeyInt a, MonkeyInt b) -> Monkey.wrapLitPure $ MonkeyInt (a * b)
       (MonkeyBool a, MonkeyBool b) -> Monkey.wrapLitPure $ MonkeyBool (a && b)
-      _ -> EC.throwErr NotImpl
+      _ -> throwErr NotImpl
     Divide -> case (l, r) of
       (MonkeyInt a, MonkeyInt b) -> Monkey.wrapLitPure $ MonkeyInt (a `div` b)
-      _ -> EC.throwErr NotImpl
+      _ -> throwErr NotImpl
     Lt -> case (l, r) of
       (MonkeyInt a, MonkeyInt b) -> Monkey.wrapLitPure $ MonkeyBool (a < b)
-      _ -> EC.throwErr NotImpl
+      _ -> throwErr NotImpl
     Gt -> case (l, r) of
       (MonkeyInt a, MonkeyInt b) -> Monkey.wrapLitPure $ MonkeyBool (a > b)
-      _ -> EC.throwErr NotImpl
+      _ -> throwErr NotImpl
     Eq -> Monkey.wrapLitPure $ MonkeyBool (l == r)
     NotEq -> Monkey.wrapLitPure $ MonkeyBool (l /= r)
 evalExpr (IfExpr{..}) = do
@@ -91,7 +91,26 @@ evalExpr (IfExpr{..}) = do
       Just p -> evalProgram p
       _ -> pure $ LiteralValue MonkeyNull
 evalExpr (FnExpr{..}) = do
-  localEnv <- EC.get
+  localEnv <- Evaluator.get
   let program = body
   Monkey.wrapLitPure MonkeyFn{..}
-evalExpr _ = undefined
+evalExpr (CallExpr{..}) = do
+  env <- Evaluator.get
+  expr <- Monkey.unwrap <$> evalExpr called
+  case expr of
+    MonkeyFn{..} -> do
+      evaluatedArgs <- mapM evalExpr args
+      let keys = fmap (\(Identifier t) -> t) params
+          pairs = zip keys evaluatedArgs
+
+      env' <-
+        if length keys == length pairs
+          then pure $ EE.union localEnv (EE.union (EE.fromList pairs) env)
+          else throwErr NotImpl
+
+      Evaluator.put env'
+      (value, _) <- case runEvaluator (evalProgram program) env' of
+        Left err -> throwErr err
+        Right v -> pure v
+      value <$ Evaluator.put env
+    _ -> throwErr NotImpl

@@ -4,10 +4,14 @@ module Evaluator.Type (
   MonkeyValue (..),
   MonkeyValueObj (..),
   Env (..),
-  Evaluator (..),
+  Evaluator,
+  runEvaluator,
+  get,
+  put,
 ) where
 
 import AST (Identifier, Program)
+import Control.Monad.Trans.State (StateT (runStateT), get, put)
 import qualified Data.Map as M
 import Data.Text (Text)
 import qualified Data.Text as T
@@ -15,21 +19,10 @@ import Evaluator.Error (EvalErrorOr)
 import Text.Printf (printf)
 import Prelude hiding (lookup)
 
-newtype Evaluator output = Evaluator {runEvaluator :: Env -> EvalErrorOr (output, Env)} deriving (Functor)
+type Evaluator output = StateT Env EvalErrorOr output
 
-instance Applicative Evaluator where
-  pure a = Evaluator $ \env -> Right (a, env)
-
-  Evaluator f <*> Evaluator a = Evaluator $ \env -> do
-    (aa, env') <- a env
-    (ff, env'') <- f env'
-    return (ff aa, env'')
-
-instance Monad Evaluator where
-  Evaluator a >>= f = Evaluator $ \env -> do
-    (a', env') <- a env
-    let Evaluator b = f a'
-    b env'
+runEvaluator :: Evaluator output -> Env -> EvalErrorOr (output, Env)
+runEvaluator = runStateT
 
 data MonkeyValue
   = ReturnValue MonkeyValueObj

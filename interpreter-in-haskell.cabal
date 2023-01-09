@@ -27,7 +27,6 @@ library
   exposed-modules:
       AST
       Evaluator
-      Evaluator.Combinator
       Evaluator.Env
       Evaluator.Error
       Evaluator.MonkeyValue

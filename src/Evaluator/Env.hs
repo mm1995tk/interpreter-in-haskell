@@ -3,6 +3,7 @@ module Evaluator.Env (
   fromList,
   lookup,
   upsert,
+  union,
 ) where
 
 import qualified Data.Map as M
@@ -21,3 +22,6 @@ lookup t (Env e) = M.lookup t e
 
 upsert :: Text -> MonkeyValue -> Env -> Env
 upsert t mv (Env e) = Env $ M.insert t mv e
+
+union :: Env -> Env -> Env
+union (Env local) (Env global) = Env $ M.union local global
