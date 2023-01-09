@@ -6,7 +6,7 @@ import qualified AST
 import qualified AST as ASt
 import Control.Monad (void)
 import Data.Functor (($>))
-import Data.Maybe (isJust)
+import Data.Maybe (fromMaybe, isJust)
 import Data.Text (Text, pack)
 import Parser.Error (Error (..))
 import qualified Parser.Error as ParserError
@@ -53,25 +53,14 @@ parseExprDefault = parseExpr AST.Lowest
 
 parseExpr :: AST.PrecedenceOfInfixOp -> Parser AST.Expr
 parseExpr precedence = do
-  leftExpr <- M.choice [try parseGroupExpr, try parseCall, parseAtomicExpr]
-  M.optional parseInfixOp >>= \case
-    Just infixOp
-      | AST.getInfixPrecedence infixOp > precedence ->
-        AST.InfixExpr infixOp leftExpr <$> (M.notFollowedBy parseInfixOp *> parseExpr precedence)
-    _ -> return leftExpr
+  leftExpr <- M.choice [try parseGroupExpr, parseAtomicExpr]
+  maybeExpr <- M.optional (parseFoldExprFromLeft leftExpr)
+  return $ fromMaybe leftExpr maybeExpr
   where
     parseGroupExpr = betweenParen parseExprDefault
-    parseInfixOp =
-      M.choice . fmap lexToken $
-        [ AST.Plus
-        , AST.Minus
-        , AST.Multiply
-        , AST.Divide
-        , AST.Lt
-        , AST.Gt
-        , AST.Eq
-        , AST.NotEq
-        ]
+    parseFoldExprFromLeft leftExpr =
+      (M.choice [parseCall leftExpr, parseInfix precedence leftExpr] >>= parseFoldExprFromLeft)
+        <|> pure leftExpr
 
 parseAtomicExpr :: Parser AST.Expr
 parseAtomicExpr =
@@ -102,14 +91,34 @@ parseFn =
     <*> betweenParen (M.many $ parseIdent <* M.optional (char ','))
     <*> parseBlockStmt
 
-parseCall :: Parser AST.Expr
-parseCall =
+parseInfix :: AST.PrecedenceOfInfixOp -> AST.Expr -> Parser AST.Expr
+parseInfix precedence left =
+  parseInfixOp >>= \case
+    infixOp
+      | AST.getInfixPrecedence infixOp > precedence -> AST.InfixExpr infixOp left <$> (M.notFollowedBy parseInfixOp *> parseExpr precedence)
+    _ -> return left
+  where
+    parseInfixOp =
+      M.choice . fmap lexToken $
+        [ AST.Plus
+        , AST.Minus
+        , AST.Multiply
+        , AST.Divide
+        , AST.Lt
+        , AST.Gt
+        , AST.Eq
+        , AST.NotEq
+        ]
+
+parseCall :: AST.Expr -> Parser AST.Expr
+parseCall fn =
   AST.CallExpr
-    <$> ( parseAtomicExpr >>= \case
-            AST.LiteralExpr _ -> ParserError.throwError $ ParserError.UnexpectedToken "expression that returns a function when evaluated" "literal"
-            called' -> return called'
-        )
+    <$> callExpr fn
     <*> betweenParen (M.many $ parseExprDefault <* M.optional (char ','))
+  where
+    callExpr = \case
+      AST.LiteralExpr _ -> ParserError.throwError $ ParserError.UnexpectedToken "expression that returns a function when evaluated" "literal"
+      called' -> return called'
 
 parseIdent :: Parser AST.Identifier
 parseIdent = wrapByIdent <$> (checkStartFromChar *> exec)

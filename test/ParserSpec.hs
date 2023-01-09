@@ -87,7 +87,7 @@ spec_parse_fn_expr = do
 spec_parse_call_expr :: Spec
 spec_parse_call_expr = do
   it "正常" $
-    parse parseCall "func(x, plus(x,y))"
+    parse (parseCall $ AST.IdentExpr $ AST.Identifier "func") "(x, plus(x,y))"
       `shouldParse` AST.CallExpr
         { called = AST.IdentExpr $ AST.Identifier "func"
         , args =
@@ -99,9 +99,8 @@ spec_parse_call_expr = do
             ]
         }
   it "呼び出し箇所がリテラル" $
-    parse parseCall "1(x, plus(x,y))"
-      `shouldFailWith` errFancy 1 (fancyErr $ ParserError.UnexpectedToken "expression that returns a function when evaluated" "literal")
-
+    parse (parseCall $ AST.LiteralExpr $ AST.NumLiteral 1) "(x, plus(x,y))"
+      `shouldFailWith` errFancy 0 (fancyErr $ ParserError.UnexpectedToken "expression that returns a function when evaluated" "literal")
 spec_parse_if_expr :: Spec
 spec_parse_if_expr = do
   it "正常" $
