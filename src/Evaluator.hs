@@ -108,9 +108,5 @@ evalExpr (CallExpr{..}) = do
           then pure $ EE.union localEnv (EE.union (EE.fromList pairs) env)
           else throwErr NotImpl
 
-      Evaluator.put env'
-      (value, _) <- case runEvaluator (evalProgram program) env' of
-        Left err -> throwErr err
-        Right v -> pure v
-      value <$ Evaluator.put env
+      Evaluator.put env' *> evalProgram program <* Evaluator.put env
     _ -> throwErr NotImpl
