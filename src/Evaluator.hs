@@ -97,9 +97,9 @@ evalExpr (IfExpr{..}) = do
 evalExpr (FnExpr{body = program, ..}) = do
   localEnv <- Evaluator.get
   Monkey.wrapLitPure MonkeyFn{..}
-evalExpr (CallExpr{..}) = join $ evalCallFn <$> Evaluator.get <*> (Monkey.unwrap <$> evalExpr called)
+evalExpr (CallExpr{..}) = join $ evalCallFn <$> Evaluator.get <*> evalExpr called
   where
-    evalCallFn env MonkeyFn{..} = do
+    evalCallFn env (LiteralValue MonkeyFn{..}) = do
       evaluatedArgs <- mapM evalExpr args
 
       if length evaluatedArgs == length params
