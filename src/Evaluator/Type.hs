@@ -53,7 +53,7 @@ data MonkeyValueObj
 newtype Env = Env (M.Map Text MonkeyValue)
 
 instance Semigroup Env where
-  (Env a) <> (Env b) = Env $ M.union a b
+  (Env a) <> (Env b) = Env $ M.union b a
 
 instance Show Env where
   show (Env e) = let list = M.toList e in f list
