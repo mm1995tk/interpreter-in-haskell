@@ -5,17 +5,21 @@ module Evaluator.Type (
   MonkeyValueObj (..),
   Env (..),
   Evaluator,
+  EvalError (..),
+  EvalErrorOr,
   runEvaluator,
+  throwErr,
   get,
   put,
 ) where
 
 import AST (Identifier, Program)
+import Control.Monad.Trans.Class (MonadTrans (lift))
 import Control.Monad.Trans.State (StateT (runStateT), get, put)
 import qualified Data.Map as M
 import Data.Text (Text)
 import qualified Data.Text as T
-import Evaluator.Error (EvalErrorOr)
+
 import Text.Printf (printf)
 import Prelude hiding (lookup)
 
@@ -23,6 +27,16 @@ type Evaluator output = StateT Env EvalErrorOr output
 
 runEvaluator :: Evaluator output -> Env -> EvalErrorOr (output, Env)
 runEvaluator = runStateT
+
+throwErr :: EvalError -> Evaluator a
+throwErr = lift . Left
+
+data EvalError
+  = NotImpl
+  | Debug String
+  deriving (Show)
+
+type EvalErrorOr = Either EvalError
 
 data MonkeyValue
   = ReturnValue MonkeyValueObj
@@ -37,6 +51,9 @@ data MonkeyValueObj
   deriving (Show, Eq)
 
 newtype Env = Env (M.Map Text MonkeyValue)
+
+instance Semigroup Env where
+  (Env a) <> (Env b) = Env $ M.union a b
 
 instance Show Env where
   show (Env e) = let list = M.toList e in f list

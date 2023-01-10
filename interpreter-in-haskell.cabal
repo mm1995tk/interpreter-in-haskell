@@ -28,7 +28,6 @@ library
       AST
       Evaluator
       Evaluator.Env
-      Evaluator.Error
       Evaluator.MonkeyValue
       Evaluator.Type
       Parser

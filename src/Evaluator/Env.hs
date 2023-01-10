@@ -3,12 +3,13 @@ module Evaluator.Env (
   fromList,
   lookup,
   upsert,
-  union,
+  compose,
 ) where
 
 import qualified Data.Map as M
 import Data.Text (Text)
 import Evaluator.Type (Env (..), MonkeyValue)
+
 import Prelude hiding (lookup)
 
 empty :: Env
@@ -23,5 +24,7 @@ lookup t (Env e) = M.lookup t e
 upsert :: Text -> MonkeyValue -> Env -> Env
 upsert t mv (Env e) = Env $ M.insert t mv e
 
-union :: Env -> Env -> Env
-union (Env local) (Env global) = Env $ M.union local global
+compose :: Env -> [Env] -> Env
+compose e [] = e
+compose e [x] = e <> x
+compose e (x : xs) = e <> compose x xs
