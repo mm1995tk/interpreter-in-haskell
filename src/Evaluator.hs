@@ -22,17 +22,17 @@ evalProgram (x : xs) =
     _ -> evalProgram xs
 
 evalStmt :: Statement -> Evaluator MonkeyValue
-evalStmt (ExprStmt _ True) = Monkey.wrapLitPure MonkeyNull
-evalStmt (ExprStmt e _) = evalExpr e
-evalStmt (Return e) =
-  evalExpr e >>= \case
-    v@(ReturnValue _) -> pure v
-    LiteralValue v -> pure $ ReturnValue v
 evalStmt (Let (Identifier key) expr) = do
   env <- Evaluator.get
   evaluated <- evalExpr expr
   Evaluator.put $ EE.upsert key evaluated env
   Monkey.wrapLitPure MonkeyNull
+evalStmt (Return e) =
+  evalExpr e >>= \case
+    v@(ReturnValue _) -> pure v
+    LiteralValue v -> pure $ ReturnValue v
+evalStmt (ExprStmt{isSemicolon = True}) = Monkey.wrapLitPure MonkeyNull
+evalStmt (ExprStmt{expr}) = evalExpr expr
 
 evalExpr :: Expr -> Evaluator MonkeyValue
 evalExpr (LiteralExpr l) = Monkey.wrapLitPure $ case l of
