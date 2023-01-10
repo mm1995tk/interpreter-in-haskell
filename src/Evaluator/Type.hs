@@ -20,6 +20,7 @@ import qualified Data.Map as M
 import Data.Text (Text)
 import qualified Data.Text as T
 
+import Support.TypeClass (Display (displayText))
 import Text.Printf (printf)
 import Prelude hiding (lookup)
 
@@ -49,6 +50,12 @@ data MonkeyValueObj
   | MonkeyFn {params :: [Identifier], program :: Program, localEnv :: Env}
   | MonkeyNull
   deriving (Show, Eq)
+
+instance Display MonkeyValueObj where
+  displayText (MonkeyInt n) = T.pack $ show n
+  displayText (MonkeyBool b) = if b then "true" else "false"
+  displayText (MonkeyFn{}) = "[function]"
+  displayText MonkeyNull = "null"
 
 newtype Env = Env (M.Map Text MonkeyValue)
 

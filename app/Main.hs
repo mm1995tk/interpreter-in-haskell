@@ -6,6 +6,7 @@ import qualified Data.Text as T
 import Evaluator (eval)
 import qualified Evaluator.Env as EE
 import Parser (parse, parseProgram)
+import Support.TypeClass (Display (display))
 import System.IO (hFlush, stdout)
 import System.Posix.Signals (
   Handler (Catch),
@@ -40,6 +41,6 @@ repl = do
         Left err -> print err $> e
         Right p -> case eval p e of
           Left err -> print err $> e
-          Right (v, e') -> print v $> e'
+          Right (v, e') -> putStrLn (display v) $> e'
       putStrLn ""
       loop e'
