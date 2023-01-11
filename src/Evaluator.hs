@@ -24,7 +24,7 @@ evalProgram (x : xs) =
 evalStmt :: Statement -> Evaluator MonkeyValue
 evalStmt (Let (Identifier key) expr) = do
   evaluated <- evalExpr expr
-  env <- EE.upsert key evaluated  <$> Evaluator.get
+  env <- EE.upsert key evaluated <$> Evaluator.get
   Evaluator.put env
   Monkey.wrapLitPure MonkeyNull
 evalStmt (Return e) =
