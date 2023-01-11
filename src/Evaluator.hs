@@ -18,14 +18,14 @@ evalProgram [] = Monkey.wrapLitPure MonkeyNull
 evalProgram [x] = evalStmt x
 evalProgram (x : xs) =
   evalStmt x >>= \case
-    ReturnValue v -> pure $ LiteralValue v
+    ReturnValue v -> Monkey.wrapLitPure v
     _ -> evalProgram xs
 
 evalStmt :: Statement -> Evaluator MonkeyValue
 evalStmt (Let (Identifier key) expr) = do
-  env <- Evaluator.get
   evaluated <- evalExpr expr
-  Evaluator.put $ EE.upsert key evaluated env
+  env <- EE.upsert key evaluated  <$> Evaluator.get
+  Evaluator.put env
   Monkey.wrapLitPure MonkeyNull
 evalStmt (Return e) =
   evalExpr e >>= \case
@@ -93,7 +93,7 @@ evalExpr (IfExpr{..}) = do
     then evalProgram consequence
     else case alter of
       Just p -> evalProgram p
-      _ -> pure $ LiteralValue MonkeyNull
+      _ -> Monkey.wrapLitPure MonkeyNull
 evalExpr (FnExpr{body = program, ..}) = do
   localEnv <- Evaluator.get
   Monkey.wrapLitPure MonkeyFn{..}
