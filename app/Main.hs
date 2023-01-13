@@ -13,6 +13,7 @@ import System.Posix.Signals (
   installHandler,
   keyboardSignal,
  )
+import Text.Megaparsec (errorBundlePretty)
 
 main :: IO ()
 main = do
@@ -38,7 +39,7 @@ repl = do
       hFlush stdout
       input <- T.pack <$> getLine
       e' <- case parse parseProgram input of
-        Left err -> print err $> e
+        Left err -> putStrLn (errorBundlePretty err) $> e
         Right p -> case eval p e of
           Left err -> print err $> e
           Right (v, e') -> putStrLn (display v) $> e'
