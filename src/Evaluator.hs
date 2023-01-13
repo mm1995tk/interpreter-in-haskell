@@ -110,5 +110,10 @@ evalExpr (CallExpr{..}) = join $ evalCallFn <$> Evaluator.get <*> evalExpr calle
           pairs = zip keys evaluatedArgs
           env' = EE.compose env [localEnv, EE.fromList pairs]
 
-      Evaluator.put env' *> evalProgram program <* Evaluator.put env
+      Evaluator.put env'
+        *> ( evalProgram program >>= \case
+              ReturnValue v -> Monkey.wrapLitPure v
+              other -> pure other
+           )
+        <* Evaluator.put env
     evalCallFn _ _ = Evaluator.throwErr NotImpl

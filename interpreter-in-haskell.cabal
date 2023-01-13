@@ -94,6 +94,7 @@ test-suite interpreter-in-haskell-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      EvaluatorSpec
       ParserSpec
       Paths_interpreter_in_haskell
   hs-source-dirs:

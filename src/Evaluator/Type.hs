@@ -35,7 +35,7 @@ throwErr = lift . Left
 data EvalError
   = NotImpl
   | Debug String
-  deriving (Show)
+  deriving (Show, Eq)
 
 type EvalErrorOr = Either EvalError
 
