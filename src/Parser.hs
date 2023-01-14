@@ -98,11 +98,12 @@ parseFn =
     <*> parseBlockStmt
 
 parseInfix :: AST.PrecedenceOfInfixOp -> AST.Expr -> Parser AST.Expr
-parseInfix precedence left =
-  parseInfixOp >>= \case
-    infixOp
-      | AST.getInfixPrecedence infixOp > precedence -> AST.InfixExpr infixOp left <$> (M.notFollowedBy parseInfixOp *> parseExpr (AST.getInfixPrecedence infixOp))
-    token -> ParserError.throwError $ ParserError.UnexpectedToken "infix token" (displayText token)
+parseInfix precedence left = do
+  infixOp <- parseInfixOp
+  let precedence' = AST.getInfixPrecedence infixOp
+  if precedence' > precedence
+    then AST.InfixExpr infixOp left <$> parseExpr precedence'
+    else ParserError.throwError $ ParserError.UnexpectedToken "" (displayText infixOp)
   where
     parseInfixOp =
       M.choice . fmap lexToken $
