@@ -59,8 +59,14 @@ parseExpr precedence = do
   where
     parseGroupExpr = betweenParen parseExprDefault
     parseFoldExprFromLeft leftExpr =
-      (try (M.choice [parseCall leftExpr, parseInfix precedence leftExpr]) >>= parseFoldExprFromLeft)
-        <|> pure leftExpr
+      let expr = do
+            leftExpr' <-
+              try . M.choice $
+                [ parseCall leftExpr
+                , parseInfix precedence leftExpr
+                ]
+            parseFoldExprFromLeft leftExpr'
+       in expr <|> pure leftExpr
 
 parseAtomicExpr :: Parser AST.Expr
 parseAtomicExpr =
