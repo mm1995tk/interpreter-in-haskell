@@ -59,7 +59,7 @@ parseExpr precedence = do
   where
     parseGroupExpr = betweenParen parseExprDefault
     parseFoldExprFromLeft leftExpr =
-      (M.choice [parseCall leftExpr, parseInfix precedence leftExpr] >>= parseFoldExprFromLeft)
+      (try (M.choice [parseCall leftExpr, parseInfix precedence leftExpr]) >>= parseFoldExprFromLeft)
         <|> pure leftExpr
 
 parseAtomicExpr :: Parser AST.Expr
@@ -95,8 +95,8 @@ parseInfix :: AST.PrecedenceOfInfixOp -> AST.Expr -> Parser AST.Expr
 parseInfix precedence left =
   parseInfixOp >>= \case
     infixOp
-      | AST.getInfixPrecedence infixOp > precedence -> AST.InfixExpr infixOp left <$> (M.notFollowedBy parseInfixOp *> parseExpr precedence)
-    _ -> return left
+      | AST.getInfixPrecedence infixOp > precedence -> AST.InfixExpr infixOp left <$> (M.notFollowedBy parseInfixOp *> parseExpr (AST.getInfixPrecedence infixOp))
+    token -> ParserError.throwError $ ParserError.UnexpectedToken "infix token" (displayText token)
   where
     parseInfixOp =
       M.choice . fmap lexToken $
