@@ -46,6 +46,7 @@ data MonkeyValue
 
 data MonkeyValueObj
   = MonkeyInt Int
+  | MonkeyStr Text
   | MonkeyBool Bool
   | MonkeyFn {params :: [Identifier], program :: Program, localEnv :: Env}
   | MonkeyNull
@@ -53,6 +54,7 @@ data MonkeyValueObj
 
 instance Display MonkeyValueObj where
   displayText (MonkeyInt n) = T.pack $ show n
+  displayText (MonkeyStr str) = str
   displayText (MonkeyBool b) = if b then "true" else "false"
   displayText (MonkeyFn{}) = "[function]"
   displayText MonkeyNull = "null"

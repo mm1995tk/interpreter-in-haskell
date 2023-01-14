@@ -135,8 +135,12 @@ parseIdent = wrapByIdent <$> (checkStartFromChar *> exec)
     wrapByIdent = AST.Identifier . pack
 
 parseLiteral :: Parser AST.Expr
-parseLiteral = AST.LiteralExpr <$> (M.choice [parseNumber, parseBool, parseNull] <?> "literals")
+parseLiteral = AST.LiteralExpr <$> (M.choice [parseNumber, parseBool, parseNull, parseStr] <?> "literals")
   where
+    parseStr =
+      let exec = lexeme $ M.some Mc.alphaNumChar
+          between = lexeme . M.between (char '"') (char '"')
+       in AST.StrLiteral . pack <$> between exec
     parseNull = AST.Null <$ keyword "null"
     parseNumber = AST.NumLiteral <$> lexeme (Mcl.decimal <* M.notFollowedBy Mc.alphaNumChar)
     parseBool =

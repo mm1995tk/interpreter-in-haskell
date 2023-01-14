@@ -5,6 +5,7 @@ module Evaluator (
 
 import AST (Expr (..), Identifier (..), InfixOp (..), Literal (..), PrefixOp (..), Program, Statement (..))
 import Control.Monad (join)
+import qualified Data.Text as T
 import qualified Evaluator.Env as EE
 import qualified Evaluator.MonkeyValue as Monkey
 import Evaluator.Type (Env, EvalError (..), EvalErrorOr, Evaluator, MonkeyValue (..), MonkeyValueObj (..))
@@ -38,6 +39,7 @@ evalExpr :: Expr -> Evaluator MonkeyValue
 evalExpr (LiteralExpr l) = Monkey.wrapLitPure $ case l of
   NumLiteral n -> MonkeyInt n
   BoolLiteral b -> MonkeyBool b
+  StrLiteral str -> MonkeyStr str
   Null -> MonkeyNull
 evalExpr (PrefixExpr op expr) = case op of
   MinusPrefix ->
@@ -51,6 +53,7 @@ evalExpr (PrefixExpr op expr) = case op of
       v@(ReturnValue _) -> pure v
       LiteralValue v -> case v of
         MonkeyInt _ -> Monkey.wrapLitPure $ MonkeyBool False
+        MonkeyStr _ -> Monkey.wrapLitPure $ MonkeyBool False
         MonkeyBool b -> Monkey.wrapLitPure $ MonkeyBool (not b)
         MonkeyNull -> Monkey.wrapLitPure $ MonkeyBool True
         MonkeyFn{} -> Monkey.wrapLitPure $ MonkeyBool False
@@ -68,6 +71,7 @@ evalExpr (InfixExpr{..}) = do
     Plus -> case (l, r) of
       (MonkeyInt a, MonkeyInt b) -> Monkey.wrapLitPure $ MonkeyInt (a + b)
       (MonkeyBool a, MonkeyBool b) -> Monkey.wrapLitPure $ MonkeyBool (a || b)
+      (MonkeyStr a, MonkeyStr b) -> Monkey.wrapLitPure . MonkeyStr $ T.concat [a, b]
       _ -> Evaluator.throwErr NotImpl
     Minus -> case (l, r) of
       (MonkeyInt a, MonkeyInt b) -> Monkey.wrapLitPure $ MonkeyInt (a - b)

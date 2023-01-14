@@ -36,6 +36,7 @@ data Expr
 
 data Literal
   = NumLiteral Int
+  | StrLiteral Text
   | BoolLiteral Bool
   | Null
   deriving (Eq, Show)
