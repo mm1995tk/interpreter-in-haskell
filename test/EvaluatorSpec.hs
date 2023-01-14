@@ -15,6 +15,7 @@ spec_eval = do
   describe "eval" $ do
     it "fibonacci" $ createTest "test/resource/fibonacci.monkey" "5"
     it "higher_order_function" $ createTest "test/resource/higher_order_function.monkey" "9"
+    it "collatz" $ createTest "test/resource/collatz.monkey" "1"
 
 createTest :: String -> T.Text -> IO ()
 createTest filePath expected = do
