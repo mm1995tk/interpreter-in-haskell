@@ -152,7 +152,10 @@ parseLiteral = AST.LiteralExpr <$> (M.choice [parseNumber, parseBool, parseNull,
         <|> (AST.BoolLiteral False <$ keyword "false")
 
 parseCommaSeparatedExprs :: Parser [AST.Expr]
-parseCommaSeparatedExprs = M.many (parseExprDefault <* M.optional (char ','))
+parseCommaSeparatedExprs =
+  M.optional parseExprDefault >>= \case
+    Nothing -> return []
+    Just expr -> (expr :) <$> M.many (char ',' *> parseExprDefault)
 
 lexToken :: (Display a) => a -> Parser a
 lexToken token = (lexeme . Mc.string . displayText $ token) $> token
