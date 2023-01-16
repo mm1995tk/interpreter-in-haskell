@@ -62,7 +62,7 @@ evalExpr (AccessExpr{..}) = do
     MonkeyHashMap hashmap -> case M.lookup a hashmap of
       Nothing -> Monkey.wrapLitPure MonkeyNull
       Just v -> Monkey.wrapLitPure v
-    _ -> return undefined
+    _ -> Evaluator.throwErr NotImpl
 evalExpr (PrefixExpr op expr) = case op of
   MinusPrefix ->
     evaluated >>= \case
