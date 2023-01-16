@@ -10,12 +10,8 @@ import Evaluator.Type (MonkeyValue (..), MonkeyValueObj (..))
 
 isTruthy :: MonkeyValueObj -> Bool
 isTruthy MonkeyNull = False
-isTruthy (MonkeyInt _) = True
 isTruthy (MonkeyBool b) = b
-isTruthy (MonkeyFn{}) = True
-isTruthy (MonkeyStr _) = True
-isTruthy (MonkeyArr _) = True
-isTruthy (MonkeyHashMap _) = True
+isTruthy _ = True
 
 unwrap :: MonkeyValue -> MonkeyValueObj
 unwrap (ReturnValue v) = v
