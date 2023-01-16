@@ -26,6 +26,7 @@ data Statement
 
 data Expr
   = LiteralExpr Literal
+  | ArrExpr [Expr]
   | IdentExpr Identifier
   | PrefixExpr {prefixOp :: PrefixOp, expr :: Expr}
   | InfixExpr {infixOp :: InfixOp, leftExpr :: Expr, rightExpr :: Expr}

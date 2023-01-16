@@ -13,6 +13,8 @@ isTruthy MonkeyNull = False
 isTruthy (MonkeyInt _) = True
 isTruthy (MonkeyBool b) = b
 isTruthy (MonkeyFn{}) = True
+isTruthy (MonkeyStr _) = True
+isTruthy (MonkeyArr _) = True
 
 unwrap :: MonkeyValue -> MonkeyValueObj
 unwrap (ReturnValue v) = v

@@ -73,6 +73,7 @@ parseAtomicExpr =
   M.choice
     [ parsePrefixExpr
     , parseLiteral
+    , parseArr
     , parseIfExpr
     , parseFn
     , fmap AST.IdentExpr parseIdent
@@ -121,11 +122,14 @@ parseCall :: AST.Expr -> Parser AST.Expr
 parseCall fn =
   AST.CallExpr
     <$> callExpr fn
-    <*> betweenParen (M.many $ parseExprDefault <* M.optional (char ','))
+    <*> betweenParen parseCommaSeparatedExprs
   where
     callExpr = \case
       AST.LiteralExpr _ -> ParserError.throwError $ ParserError.UnexpectedToken "expression that returns a function when evaluated" "literal"
       called' -> return called'
+
+parseArr :: Parser AST.Expr
+parseArr = AST.ArrExpr <$> betweenBracket parseCommaSeparatedExprs
 
 parseIdent :: Parser AST.Identifier
 parseIdent = wrapByIdent <$> (checkStartFromChar *> exec)
@@ -146,6 +150,9 @@ parseLiteral = AST.LiteralExpr <$> (M.choice [parseNumber, parseBool, parseNull,
     parseBool =
       (AST.BoolLiteral True <$ keyword "true")
         <|> (AST.BoolLiteral False <$ keyword "false")
+
+parseCommaSeparatedExprs :: Parser [AST.Expr]
+parseCommaSeparatedExprs = M.many (parseExprDefault <* M.optional (char ','))
 
 lexToken :: (Display a) => a -> Parser a
 lexToken token = (lexeme . Mc.string . displayText $ token) $> token
@@ -175,6 +182,9 @@ betweenParen = lexeme . M.between (char '(') (char ')')
 
 betweenBrace :: Parser a -> Parser a
 betweenBrace = lexeme . M.between (char '{') (char '}')
+
+betweenBracket :: Parser a -> Parser a
+betweenBracket = lexeme . M.between (char '[') (char ']')
 
 semicolon :: Parser ()
 semicolon = char ';'

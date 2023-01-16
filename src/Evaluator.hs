@@ -41,6 +41,10 @@ evalExpr (LiteralExpr l) = Monkey.wrapLitPure $ case l of
   BoolLiteral b -> MonkeyBool b
   StrLiteral str -> MonkeyStr str
   Null -> MonkeyNull
+evalExpr (ArrExpr exprs) = do
+  values <- mapM evalExpr exprs
+  let arr = MonkeyArr $ Monkey.unwrap <$> values
+  Monkey.wrapLitPure arr
 evalExpr (PrefixExpr op expr) = case op of
   MinusPrefix ->
     evaluated >>= \case
@@ -54,6 +58,7 @@ evalExpr (PrefixExpr op expr) = case op of
       LiteralValue v -> case v of
         MonkeyInt _ -> Monkey.wrapLitPure $ MonkeyBool False
         MonkeyStr _ -> Monkey.wrapLitPure $ MonkeyBool False
+        MonkeyArr _ -> Monkey.wrapLitPure $ MonkeyBool False
         MonkeyBool b -> Monkey.wrapLitPure $ MonkeyBool (not b)
         MonkeyNull -> Monkey.wrapLitPure $ MonkeyBool True
         MonkeyFn{} -> Monkey.wrapLitPure $ MonkeyBool False

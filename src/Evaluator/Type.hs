@@ -48,16 +48,21 @@ data MonkeyValueObj
   = MonkeyInt Int
   | MonkeyStr Text
   | MonkeyBool Bool
+  | MonkeyArr [MonkeyValueObj]
   | MonkeyFn {params :: [Identifier], program :: Program, localEnv :: Env}
   | MonkeyNull
   deriving (Show, Eq)
 
 instance Display MonkeyValueObj where
   displayText (MonkeyInt n) = T.pack $ show n
-  displayText (MonkeyStr str) = str
+  displayText (MonkeyStr str) = T.concat ["\"", str, "\""]
   displayText (MonkeyBool b) = if b then "true" else "false"
   displayText (MonkeyFn{}) = "[function]"
   displayText MonkeyNull = "null"
+  displayText (MonkeyArr []) = "[]"
+  displayText (MonkeyArr nonemptyArr) =
+    let content = T.concat $ fmap (\expr -> T.concat [displayText expr, ","]) nonemptyArr
+     in T.concat ["[", content, "]"]
 
 newtype Env = Env (M.Map Text MonkeyValue)
 
