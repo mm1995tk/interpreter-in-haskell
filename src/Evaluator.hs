@@ -52,6 +52,17 @@ evalExpr (HashMapExpr kv) = do
   where
     evalUnwrap ast = Monkey.unwrap <$> evalExpr ast
     evalKeyValue (a, b) = (,) <$> evalUnwrap a <*> evalUnwrap b
+evalExpr (AccessExpr{..}) = do
+  t <- Monkey.unwrap <$> evalExpr target
+  a <- Monkey.unwrap <$> evalExpr accessor
+  case t of
+    MonkeyArr arr -> case a of
+      MonkeyInt n -> Monkey.wrapLitPure $ arr !! n
+      _ -> Evaluator.throwErr NotImpl
+    MonkeyHashMap hashmap -> case M.lookup a hashmap of
+      Nothing -> Monkey.wrapLitPure MonkeyNull
+      Just v -> Monkey.wrapLitPure v
+    _ -> return undefined
 evalExpr (PrefixExpr op expr) = case op of
   MinusPrefix ->
     evaluated >>= \case
