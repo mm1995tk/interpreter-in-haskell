@@ -72,14 +72,7 @@ evalExpr (PrefixExpr op expr) = case op of
   Not ->
     evaluated >>= \case
       v@(ReturnValue _) -> pure v
-      LiteralValue v -> case v of
-        MonkeyInt _ -> Monkey.wrapLitPure $ MonkeyBool False
-        MonkeyStr _ -> Monkey.wrapLitPure $ MonkeyBool False
-        MonkeyArr _ -> Monkey.wrapLitPure $ MonkeyBool False
-        MonkeyHashMap _ -> Monkey.wrapLitPure $ MonkeyBool False
-        MonkeyBool b -> Monkey.wrapLitPure $ MonkeyBool (not b)
-        MonkeyNull -> Monkey.wrapLitPure $ MonkeyBool True
-        MonkeyFn{} -> Monkey.wrapLitPure $ MonkeyBool False
+      LiteralValue v -> Monkey.wrapLitPure . MonkeyBool . not $ Monkey.isTruthy v
   where
     evaluated = evalExpr expr
 evalExpr (IdentExpr (Identifier ident)) = do
