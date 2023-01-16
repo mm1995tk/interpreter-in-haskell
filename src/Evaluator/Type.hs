@@ -42,16 +42,17 @@ type EvalErrorOr = Either EvalError
 data MonkeyValue
   = ReturnValue MonkeyValueObj
   | LiteralValue MonkeyValueObj
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 data MonkeyValueObj
   = MonkeyInt Int
   | MonkeyStr Text
   | MonkeyBool Bool
   | MonkeyArr [MonkeyValueObj]
+  | MonkeyHashMap (M.Map MonkeyValueObj MonkeyValueObj)
   | MonkeyFn {params :: [Identifier], program :: Program, localEnv :: Env}
   | MonkeyNull
-  deriving (Show, Eq)
+  deriving (Show, Eq, Ord)
 
 instance Display MonkeyValueObj where
   displayText (MonkeyInt n) = T.pack $ show n
@@ -63,8 +64,9 @@ instance Display MonkeyValueObj where
   displayText (MonkeyArr nonemptyArr) =
     let content = T.concat $ fmap (\expr -> T.concat [displayText expr, ","]) nonemptyArr
      in T.concat ["[", content, "]"]
+  displayText (MonkeyHashMap m) = T.pack $ show m
 
-newtype Env = Env (M.Map Text MonkeyValue)
+newtype Env = Env (M.Map Text MonkeyValue) deriving (Ord)
 
 instance Semigroup Env where
   (Env a) <> (Env b) = Env $ M.union b a

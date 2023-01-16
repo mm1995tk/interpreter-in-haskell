@@ -5,6 +5,7 @@ module Evaluator (
 
 import AST (Expr (..), Identifier (..), InfixOp (..), Literal (..), PrefixOp (..), Program, Statement (..))
 import Control.Monad (join)
+import qualified Data.Map as M
 import qualified Data.Text as T
 import qualified Evaluator.Env as EE
 import qualified Evaluator.MonkeyValue as Monkey
@@ -45,6 +46,12 @@ evalExpr (ArrExpr exprs) = do
   values <- mapM evalExpr exprs
   let arr = MonkeyArr $ Monkey.unwrap <$> values
   Monkey.wrapLitPure arr
+evalExpr (HashMapExpr kv) = do
+  keyEvaluated <- MonkeyHashMap . M.fromList <$> mapM evalKeyValue (M.toList kv)
+  Monkey.wrapLitPure keyEvaluated
+  where
+    evalUnwrap ast = Monkey.unwrap <$> evalExpr ast
+    evalKeyValue (a, b) = (,) <$> evalUnwrap a <*> evalUnwrap b
 evalExpr (PrefixExpr op expr) = case op of
   MinusPrefix ->
     evaluated >>= \case
@@ -59,6 +66,7 @@ evalExpr (PrefixExpr op expr) = case op of
         MonkeyInt _ -> Monkey.wrapLitPure $ MonkeyBool False
         MonkeyStr _ -> Monkey.wrapLitPure $ MonkeyBool False
         MonkeyArr _ -> Monkey.wrapLitPure $ MonkeyBool False
+        MonkeyHashMap _ -> Monkey.wrapLitPure $ MonkeyBool False
         MonkeyBool b -> Monkey.wrapLitPure $ MonkeyBool (not b)
         MonkeyNull -> Monkey.wrapLitPure $ MonkeyBool True
         MonkeyFn{} -> Monkey.wrapLitPure $ MonkeyBool False

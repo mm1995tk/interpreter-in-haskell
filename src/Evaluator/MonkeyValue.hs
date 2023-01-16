@@ -15,6 +15,7 @@ isTruthy (MonkeyBool b) = b
 isTruthy (MonkeyFn{}) = True
 isTruthy (MonkeyStr _) = True
 isTruthy (MonkeyArr _) = True
+isTruthy (MonkeyHashMap _) = True
 
 unwrap :: MonkeyValue -> MonkeyValueObj
 unwrap (ReturnValue v) = v
