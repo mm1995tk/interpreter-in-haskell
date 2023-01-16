@@ -64,6 +64,7 @@ parseExpr precedence = do
             leftExpr' <-
               try . M.choice $
                 [ parseCall leftExpr
+                , parseAccessExpr leftExpr
                 , parseInfix precedence leftExpr
                 ]
             parseFoldExprFromLeft leftExpr'
@@ -138,6 +139,9 @@ parseHash = AST.HashMapExpr <$> betweenBrace parseKeyValues
   where
     parseKeyValues = Map.fromList <$> parseCommaSeparated parseKeyValue
     parseKeyValue = (,) <$> parseExprDefault <*> (char ':' *> parseExprDefault)
+
+parseAccessExpr :: AST.Expr -> Parser AST.Expr
+parseAccessExpr target = do accessor <- betweenBracket parseExprDefault; pure $ AST.AccessExpr{..}
 
 parseIdent :: Parser AST.Identifier
 parseIdent = wrapByIdent <$> (checkStartFromChar *> exec)

@@ -29,6 +29,7 @@ data Expr
   = LiteralExpr Literal
   | ArrExpr [Expr]
   | HashMapExpr (M.Map Expr Expr)
+  | AccessExpr {target :: Expr, accessor :: Expr}
   | IdentExpr Identifier
   | PrefixExpr {prefixOp :: PrefixOp, expr :: Expr}
   | InfixExpr {infixOp :: InfixOp, leftExpr :: Expr, rightExpr :: Expr}
