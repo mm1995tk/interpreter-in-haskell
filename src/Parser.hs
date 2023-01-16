@@ -6,6 +6,7 @@ import qualified AST
 import qualified AST as ASt
 import Control.Monad (void)
 import Data.Functor (($>))
+import qualified Data.Map as Map
 import Data.Maybe (fromMaybe, isJust)
 import Data.Text (Text, pack)
 import Parser.Error (Error (..))
@@ -74,6 +75,7 @@ parseAtomicExpr =
     [ parsePrefixExpr
     , parseLiteral
     , parseArr
+    , parseHash
     , parseIfExpr
     , parseFn
     , fmap AST.IdentExpr parseIdent
@@ -131,6 +133,12 @@ parseCall fn =
 parseArr :: Parser AST.Expr
 parseArr = AST.ArrExpr <$> betweenBracket parseCommaSeparatedExprs
 
+parseHash :: Parser AST.Expr
+parseHash = AST.HashMapExpr <$> betweenBrace parseKeyValues
+  where
+    parseKeyValues = Map.fromList <$> parseCommaSeparated parseKeyValue
+    parseKeyValue = (,) <$> parseExprDefault <*> (char ':' *> parseExprDefault)
+
 parseIdent :: Parser AST.Identifier
 parseIdent = wrapByIdent <$> (checkStartFromChar *> exec)
   where
@@ -152,13 +160,16 @@ parseLiteral = AST.LiteralExpr <$> (M.choice [parseNumber, parseBool, parseNull,
         <|> (AST.BoolLiteral False <$ keyword "false")
 
 parseCommaSeparatedExprs :: Parser [AST.Expr]
-parseCommaSeparatedExprs = try isTrailingComma <|> notTrailingComma
+parseCommaSeparatedExprs = parseCommaSeparated parseExprDefault
+
+parseCommaSeparated :: Parser a -> Parser [a]
+parseCommaSeparated p = try isTrailingComma <|> notTrailingComma
   where
-    isTrailingComma = M.many (parseExprDefault <* char ',')
+    isTrailingComma = M.many (p <* char ',')
     notTrailingComma =
-      M.optional parseExprDefault >>= \case
+      M.optional p >>= \case
         Nothing -> return []
-        Just expr -> (expr :) <$> M.many (char ',' *> parseExprDefault)
+        Just expr -> (expr :) <$> M.many (char ',' *> p)
 
 lexToken :: (Display a) => a -> Parser a
 lexToken token = (lexeme . Mc.string . displayText $ token) $> token
