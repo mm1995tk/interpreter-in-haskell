@@ -6,6 +6,7 @@ module Evaluator (
 import AST (Expr (..), Identifier (..), InfixOp (..), Literal (..), PrefixOp (..), Program, Statement (..))
 import Control.Monad (join)
 import qualified Data.Map as M
+import Data.Maybe (fromMaybe)
 import qualified Data.Text as T
 import qualified Evaluator.Env as EE
 import qualified Evaluator.MonkeyValue as Monkey
@@ -59,9 +60,7 @@ evalExpr (AccessExpr{..}) = do
     MonkeyArr arr -> case a of
       MonkeyInt n -> Monkey.wrapLitPure $ arr !! n
       _ -> Evaluator.throwErr NotImpl
-    MonkeyHashMap hashmap -> case M.lookup a hashmap of
-      Nothing -> Monkey.wrapLitPure MonkeyNull
-      Just v -> Monkey.wrapLitPure v
+    MonkeyHashMap hashmap -> Monkey.wrapLitPure $ fromMaybe MonkeyNull (M.lookup a hashmap)
     _ -> Evaluator.throwErr NotImpl
 evalExpr (PrefixExpr op expr) = case op of
   MinusPrefix ->
