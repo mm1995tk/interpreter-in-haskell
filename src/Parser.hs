@@ -62,10 +62,10 @@ parseExpr precedence = do
     parseFoldExprFromLeft leftExpr =
       let expr = do
             leftExpr' <-
-              try . M.choice $
+              M.choice
                 [ parseCall leftExpr
-                , parseAccessExpr leftExpr
                 , parseInfix precedence leftExpr
+                , parseAccessExpr leftExpr
                 ]
             parseFoldExprFromLeft leftExpr'
        in expr <|> pure leftExpr
@@ -102,7 +102,7 @@ parseFn =
     <*> parseBlockStmt
 
 parseInfix :: AST.PrecedenceOfInfixOp -> AST.Expr -> Parser AST.Expr
-parseInfix precedence left = do
+parseInfix precedence left = try $ do
   infixOp <- parseInfixOp
   let precedence' = AST.getInfixPrecedence infixOp
   if precedence' > precedence
