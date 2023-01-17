@@ -48,7 +48,7 @@ spec_parse_ident = do
   it "数値が含まれている" $
     parse parseIdent "callFunc1" `shouldParse` AST.Identifier "callFunc1"
   it "先頭が数値" $
-    parse parseIdent "12a" `shouldFailWith` err 0 (utok '1' <> elabel "letter")
+    parse parseIdent "12a" `shouldFailWith` err 0 (utok '1' <> elabel "文字はじまりの文字列")
 
 spec_parse_prefix_expr :: Spec
 spec_parse_prefix_expr = do
