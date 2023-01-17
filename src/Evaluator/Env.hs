@@ -8,12 +8,12 @@ module Evaluator.Env (
 
 import qualified Data.Map as M
 import Data.Text (Text)
+import Evaluator.Builtin (builtinFns)
 import Evaluator.Type (Env (..), MonkeyValue)
-
 import Prelude hiding (lookup)
 
 empty :: Env
-empty = Env M.empty
+empty = Env builtinFns
 
 fromList :: [(Text, MonkeyValue)] -> Env
 fromList = Env . M.fromList

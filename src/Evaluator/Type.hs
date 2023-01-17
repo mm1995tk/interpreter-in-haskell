@@ -7,6 +7,7 @@ module Evaluator.Type (
   Evaluator,
   EvalError (..),
   EvalErrorOr,
+  BuiltinFn (..),
   runEvaluator,
   throwErr,
   get,
@@ -51,6 +52,7 @@ data MonkeyValueObj
   | MonkeyArr [MonkeyValueObj]
   | MonkeyHashMap (M.Map MonkeyValueObj MonkeyValueObj)
   | MonkeyFn {params :: [Identifier], program :: Program, localEnv :: Env}
+  | MonkeyBuiltinFn BuiltinFn
   | MonkeyNull
   deriving (Show, Eq, Ord)
 
@@ -65,6 +67,7 @@ instance Display MonkeyValueObj where
     let content = T.concat $ fmap (\expr -> T.concat [displayText expr, ","]) nonemptyArr
      in T.concat ["[", content, "]"]
   displayText (MonkeyHashMap m) = T.pack $ show m
+  displayText (MonkeyBuiltinFn m) = T.pack $ show m
 
 newtype Env = Env (M.Map Text MonkeyValue) deriving (Ord)
 
@@ -80,3 +83,18 @@ instance Show Env where
 
 instance Eq Env where
   (Env a) == (Env b) = show a == show b
+
+data BuiltinFn = BuiltinFn
+  { name :: Text
+  , cntOfParams :: Int
+  , fn :: [MonkeyValue] -> EvalErrorOr MonkeyValue
+  }
+
+instance Show BuiltinFn where
+  show (BuiltinFn{name}) = T.unpack name
+
+instance Eq BuiltinFn where
+  (BuiltinFn{name = aname, cntOfParams = acnt}) == (BuiltinFn{name = bname, cntOfParams = bcnt}) = aname == bname && acnt == bcnt
+
+instance Ord BuiltinFn where
+  a@(BuiltinFn{name = aname}) <= b@(BuiltinFn{name = bname}) = a == b || aname < bname

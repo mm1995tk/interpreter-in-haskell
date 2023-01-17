@@ -10,7 +10,7 @@ import Data.Maybe (fromMaybe)
 import qualified Data.Text as T
 import qualified Evaluator.Env as EE
 import qualified Evaluator.MonkeyValue as Monkey
-import Evaluator.Type (Env, EvalError (..), EvalErrorOr, Evaluator, MonkeyValue (..), MonkeyValueObj (..))
+import Evaluator.Type (BuiltinFn (..), Env, EvalError (..), EvalErrorOr, Evaluator, MonkeyValue (..), MonkeyValueObj (..))
 import qualified Evaluator.Type as Evaluator (get, put, runEvaluator, throwErr)
 
 eval :: Program -> Env -> EvalErrorOr (MonkeyValueObj, Env)
@@ -136,4 +136,14 @@ evalExpr (CallExpr{..}) = join $ evalCallFn <$> Evaluator.get <*> evalExpr calle
               other -> pure other
            )
         <* Evaluator.put env
+    evalCallFn _ (LiteralValue (MonkeyBuiltinFn (BuiltinFn{cntOfParams, fn}))) = do
+      evaluatedArgs <- mapM evalExpr args
+
+      if length evaluatedArgs == cntOfParams
+        then pure ()
+        else Evaluator.throwErr NotImpl
+
+      case fn evaluatedArgs of
+        Left e -> Evaluator.throwErr e
+        Right v -> return v
     evalCallFn _ _ = Evaluator.throwErr NotImpl
