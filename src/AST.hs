@@ -60,6 +60,7 @@ data InfixOp
   | Minus
   | Multiply
   | Divide
+  | Mod
   | Lt
   | Gt
   | Eq
@@ -72,6 +73,7 @@ getInfixPrecedence = \case
   Minus -> Sum
   Multiply -> Product
   Divide -> Product
+  Mod -> Product
   Lt -> LessOrGreater
   Gt -> LessOrGreater
   Eq -> Equals
@@ -83,6 +85,7 @@ instance Display InfixOp where
     Minus -> "-"
     Multiply -> "*"
     Divide -> "/"
+    Mod -> "%"
     Lt -> "<"
     Gt -> ">"
     Eq -> "=="

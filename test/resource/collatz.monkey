@@ -11,10 +11,7 @@ let collatz = fn(x) {
 };
 
 let isEven = fn(x) {
-  let tmp = x / 2;
-  let rest = x - tmp * 2;
-
-  rest == 0
+  x % 2 == 0
 };
 
 collatz(7)

@@ -99,6 +99,9 @@ evalExpr (InfixExpr{..}) = do
     Divide -> case (l, r) of
       (MonkeyInt a, MonkeyInt b) -> Monkey.wrapLitPure $ MonkeyInt (a `div` b)
       _ -> Evaluator.throwErr NotImpl
+    Mod -> case (l, r) of
+      (MonkeyInt a, MonkeyInt b) -> Monkey.wrapLitPure $ MonkeyInt (a `mod` b)
+      _ -> Evaluator.throwErr NotImpl
     Lt -> case (l, r) of
       (MonkeyInt a, MonkeyInt b) -> Monkey.wrapLitPure $ MonkeyBool (a < b)
       _ -> Evaluator.throwErr NotImpl

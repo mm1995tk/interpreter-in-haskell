@@ -115,6 +115,7 @@ parseInfix precedence left = try $ do
         , AST.Minus
         , AST.Multiply
         , AST.Divide
+        , AST.Mod
         , AST.Lt
         , AST.Gt
         , AST.Eq
