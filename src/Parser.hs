@@ -37,7 +37,7 @@ parseBlockStmt = betweenBrace $ M.many parseStmt
 parseLetStmt :: Parser AST.Statement
 parseLetStmt = do
   keyword "let"
-  ident <- parseIdent <?> "変数名"
+  ident <- parseIdent
   char '='
   expr <- parseExprDefault
   semicolon
@@ -144,11 +144,12 @@ parseAccessExpr :: AST.Expr -> Parser AST.Expr
 parseAccessExpr target = do accessor <- betweenBracket parseExprDefault; pure $ AST.AccessExpr{..}
 
 parseIdent :: Parser AST.Identifier
-parseIdent = wrapByIdent <$> (checkStartFromChar *> exec)
+parseIdent = wrapByIdent <$> (eliminateKeyword *> checkStartFromChar *> exec)
   where
-    checkStartFromChar = M.lookAhead Mc.letterChar
+    checkStartFromChar = M.lookAhead Mc.letterChar <?> "文字はじまりの文字列"
     exec = lexeme $ M.some Mc.alphaNumChar
     wrapByIdent = AST.Identifier . pack
+    eliminateKeyword = M.notFollowedBy (M.choice . fmap keyword $ ["let", "return", "true", "false"]) <?> "予約語でない文字はじまりの文字列"
 
 parseLiteral :: Parser AST.Expr
 parseLiteral = AST.LiteralExpr <$> (M.choice [parseNumber, parseBool, parseNull, parseStr] <?> "literals")
